@@ -1,0 +1,121 @@
+documentationUrl: https://developers.google.com/admob/api/v1/getting-started
+connectionSpecification:
+  $schema: http://json-schema.org/draft-07/schema#
+  title: Google Admobs Spec
+  type: object
+  required:
+    - publisher_id 
+    - client_id
+    - client_secret
+    - refresh_token
+    - start_date
+  additionalProperties: true
+  properties:
+    auth_type:
+        title: Auth Type
+        const: oauth2.0
+        order: 0
+        type: string
+    publisher_id: 
+      title: Publisher Id
+      type: string
+      description: how to find :https://support.google.com/admob/answer/2784578
+      order: 1
+    client_id:
+      title: Client id
+      type: string
+      description: client_id
+      order: 2
+      airbyte_secret: true
+    client_secret:
+      title: Client secret
+      type: string
+      order: 3
+      description: client_secret
+      airbyte_secret: true
+    refresh_token:
+      title: Refresh token
+      type: string
+      description: refresh_token
+      airbyte_secret: true
+      order: 4
+    start_date:
+      title: Start date
+      type: string
+      description: The start date in the format YYYY-MM-DD
+      order: 5
+    custom_report_dimensions:
+      title: Custom Reports Dimension
+      description: Pick iteams in list. Default have DATE and APP
+      type: array
+      order: 6
+      minItems: 0
+      uniqueItems: true
+      items:
+        type: string
+        enum:
+          - AD_UNIT
+          - COUNTRY
+          - FORMAT
+          - PLATFORM
+          - MOBILE_OS_VERSION
+          - APP_VERSION_NAME
+          - SERVING_RESTRICTION
+          - GMA_SDK_VERSION
+    custom_report_metrics:
+      title: Custom Reports Metrics
+      description: Pick iteams in list
+      type: array
+      order: 7
+      minItems: 0
+      uniqueItems: true
+      items:
+        type: string
+        enum:
+          - AD_REQUESTS
+          - MATCHED_REQUESTS
+          - SHOW_RATE
+          - MATCH_RATE
+          - CLICKS
+          - ESTIMATED_EARNINGS
+          - IMPRESSIONS
+          - IMPRESSION_CTR
+          - IMPRESSION_RPM
+advanced_auth:
+  auth_flow_type: oauth2.0
+  predicate_key:
+    - auth_type
+  predicate_value: oauth2.0
+  oauth_config_specification:
+    complete_oauth_output_specification:
+      type: object
+      additionalProperties: true
+      properties:
+        refresh_token:
+          type: string
+          path_in_connector_config:
+            - refresh_token
+    complete_oauth_server_input_specification:
+      type: object
+      additionalProperties: true
+      properties:
+        client_id:
+          type: string
+        client_secret:
+          type: string
+    complete_oauth_server_output_specification:
+      type: object
+      additionalProperties: true
+      properties:
+        client_id:
+          type: string
+          path_in_connector_config:
+            - client_id
+        client_secret:
+          type: string
+          path_in_connector_config:
+            - client_secret
+
+
+
+
