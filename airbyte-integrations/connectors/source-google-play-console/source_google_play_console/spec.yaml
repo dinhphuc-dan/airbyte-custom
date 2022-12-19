@@ -1,0 +1,39 @@
+documentationUrl: https://docsurl.com
+connectionSpecification:
+  $schema: http://json-schema.org/draft-07/schema#
+  title: Google Play Console Spec
+  type: object
+  required:
+    - developer_id
+    - credentials
+    - package_id
+  properties:
+    developer_id:
+      title: Developer ID
+      type: string
+      description:  https://developers.google.com/android-publisher/getting_started#developer-ID
+      order : 1
+    credentials:
+      title: Credentials
+      type: object
+      order: 2
+      oneOf:
+        - title: Service Account Json 
+          type: object
+          required: 
+            - credentials_json
+          properties:
+            auth_type:
+              type: string
+              const: Service
+              order: 0
+            credentials_json: 
+              title: Service Account Json Key
+              type: string
+    package_id:
+      title: Package ID in Console
+      type: string
+      order: 3
+
+
+
