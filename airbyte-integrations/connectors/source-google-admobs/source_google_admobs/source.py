@@ -11,6 +11,7 @@ from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_cdk.sources.streams.http.requests_native_auth import Oauth2Authenticator
 from source_google_admobs.network_report_base_stream import AListApps, NetworkReport
 from source_google_admobs.network_report_custom_stream import CustomNetworkReport
+from source_google_admobs.mediation_report_base_stream import MediationReport
 
 token_refresh_endpoint = "https://oauth2.googleapis.com/token"
 
@@ -84,6 +85,20 @@ class SourceGoogleAdmobs(AbstractSource):
                 app_name=app_name,
             )
     
+    def _generate_mediation_report_streams(self, authenticator ,config: Mapping[str, Any])-> List[Stream]:
+        """Generates a list of stream by app names."""
+
+        auth = self.get_authenticator(config)
+        list_app_name_to_id_dict = self._get_app_name_to_id_dict(self, config)
+
+        for app_name, app_id in list_app_name_to_id_dict.items():
+            yield MediationReport(
+                authenticator=auth,
+                config=config,
+                app_id=app_id,
+                app_name=app_name,
+            )
+    
     def _generate_custom_streams(self, authenticator ,config: Mapping[str, Any])-> List[Stream]:
         """Generates a list of stream by app names."""
 
@@ -104,10 +119,16 @@ class SourceGoogleAdmobs(AbstractSource):
         """
         auth = self.get_authenticator(config)
         streams = [AListApps(authenticator=auth, config=config)]
+
+        """ add mediation one by one in the streams list"""
+        mediation_report_streams = self._generate_mediation_report_streams(authenticator=auth, config=config)
+        streams.extend(mediation_report_streams)
+
         """ add networks one by one in the streams list"""
         network_report_streams = self._generate_network_report_streams(authenticator=auth, config=config)
         streams.extend(network_report_streams)
 
+        """ add custom networks report one by one in the streams list"""
         if  config.get("custom_report_metrics"):
             custom_streams = self._generate_custom_streams(authenticator=auth, config=config)
             streams.extend(custom_streams)
