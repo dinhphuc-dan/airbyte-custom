@@ -10,7 +10,7 @@ from airbyte_cdk.sources.streams import Stream
 from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_cdk.sources.streams.http.requests_native_auth import Oauth2Authenticator
 from source_google_admobs.network_report_base_stream import AListApps, NetworkReport
-from source_google_admobs.network_report_custom_stream import CustomNetworkReport
+from source_google_admobs.realtime_report_custom_stream import RealtimeCustomReport
 from source_google_admobs.mediation_report_base_stream import MediationReport
 
 token_refresh_endpoint = "https://oauth2.googleapis.com/token"
@@ -106,7 +106,7 @@ class SourceGoogleAdmobs(AbstractSource):
         list_app_name_to_id_dict = self._get_app_name_to_id_dict(self, config)
 
         for app_name, app_id in list_app_name_to_id_dict.items():
-            yield CustomNetworkReport(
+            yield RealtimeCustomReport(
                 authenticator=auth,
                 config=config,
                 app_id=app_id,

@@ -12,24 +12,24 @@ from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
 import requests
 from source_google_admobs import utils
 from source_google_admobs import schemas
-from source_google_admobs.network_report_base_stream  import NetworkReport
+from source_google_admobs.mediation_report_base_stream  import MediationReport
 
-class CustomNetworkReport(NetworkReport):
+class RealtimeCustomReport(MediationReport):
     """
     Subclass of Incremental Network Report
     Adjust only some part so that users can pick custom items
     """
     primary_key = "uuid"
 
-    """ Override parent name method to add new prefix Custom_NP"""
+    """ Override parent name method to add new prefix Custom_MP"""
     @property
     def name(self) -> str:
-        prefix = "CustomNP"
+        prefix = "CustomMP"
         stream_name = prefix + self.app_id
         return stream_name
     
     def get_dimensions(self) ->list:
-        required_dimensions = ['DATE','APP']
+        required_dimensions = ['DATE','APP','AD_SOURCE']
         if self.config.get("custom_report_dimensions"):
             return required_dimensions + self.config.get("custom_report_dimensions")
         else:
@@ -86,15 +86,17 @@ class CustomNetworkReport(NetworkReport):
             "properties": {
                 "uuid": {"type": ["string"], "description": "Custom unique identifier for each record, to support primary key"},
                 "APP_NAME":{"type": ["null", "string"]},
+                "AD_SOURCE_NAME":{"type": ["null", "string"]},
             },
         }
 
         schema["properties"].update({d: {"type": ["null", "string"]} for d in self.get_dimensions()})
         if "AD_UNIT" in self.get_dimensions():
             schema["properties"].update({"AD_UNIT_NAME": {"type": ["null", "string"]}})
+        if "MEDIATION_GROUP" in self.get_dimensions():
+            schema["properties"].update({"MEDIATION_GROUP_NAME": {"type": ["null", "string"]}})
         schema["properties"].update({m: {"type": ["null", "number"]} for m in self.get_metrics()})
        
-
         return schema
 
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
