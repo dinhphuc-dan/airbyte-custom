@@ -1,0 +1,43 @@
+documentationUrl: https://docsurl.com
+connectionSpecification:
+  $schema: http://json-schema.org/draft-07/schema#
+  title: Google Analytics Ga4 Custom Spec
+  type: object
+  required:
+    - credentials
+    - property_id
+    - start_date
+    - custom_reports
+  properties:
+    credentials:
+      title: Credentials
+      type: object
+      order: 1 
+      oneOf:
+        - title: Service Account Json
+          type: object
+          required:
+            - credentials_json
+          properties:
+            credentials_json:
+              title: Service Account Json Key
+              type: string
+    property_id:
+      title: Property ID
+      type: string
+      order: 2
+    start_date:
+      title: Start Date 
+      type: string
+      order: 3
+      description: in format YYYY-MM-DD
+    custom_reports:
+      title: Custom Reports
+      type: string
+      order: 4
+      description: in json format, use this link to check https://ga-dev-tools.web.app/dimensions-metrics-explorer/
+    number_days_backward:
+      title: Number of days backward to get data
+      type: string
+      order: 5
+      description: Due to GA adjust data in the past, usually after 7 days it will stop changing so default is 7 days
