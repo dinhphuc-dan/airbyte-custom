@@ -63,9 +63,9 @@ class GoogleServiceKeyAuthenticator(requests.auth.AuthBase):
         return r
 
 # config_file = open(r"G:\airbyte_custom\airbyte-integrations\connectors\source-google-analytics-GA4-custom\secrets\config.json" )
-# secret = json.load(config_file)
+# config = json.load(config_file)
 # config_file.close()
-# cre = json.loads(secret["credentials"]["credentials_json"])
+# cre = json.loads(config["credentials"]["credentials_json"])
 # foo = GoogleServiceKeyAuthenticator(credentials = cre)
 # foo._rotate()
 # e = foo._token
