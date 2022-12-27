@@ -98,6 +98,7 @@ class NetworkReportBase(GoogleAdmobsStream):
     Uuid is added so that later on I can deduplicate records in data warehouse
     """
     primary_key = "uuid"
+    number_days_backward_default = 7
 
     def __init__(self, app_name: str = None, app_id: str = None, **kwargs):
         """override __init__ to add app_name and app_id"""
@@ -197,8 +198,9 @@ class NetworkReport(NetworkReportBase,IncrementalMixin):
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice = []
         today: datetime.date = datetime.date.today()
+        number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
         yesterday: datetime.date = datetime.date.today() - datetime.timedelta(days=1)
-        start_date: datetime.date = self.state[self.cursor_field] - datetime.timedelta(days=7)
+        start_date: datetime.date = self.state[self.cursor_field] - datetime.timedelta(days=number_days_backward)
 
         while start_date < today:
             end_date: datetime.date = start_date 

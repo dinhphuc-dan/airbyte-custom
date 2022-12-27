@@ -78,6 +78,11 @@ connectionSpecification:
           - IMPRESSIONS
           - IMPRESSION_CTR
           - IMPRESSION_RPM
+    number_days_backward:
+      title: Number of days backward to get data
+      type: string
+      order: 8
+      description: Due to Admob adjust data in the past, usually after 7 days it will stop changing so default is 7 days
 advanced_auth:
   auth_flow_type: oauth2.0
   predicate_key:

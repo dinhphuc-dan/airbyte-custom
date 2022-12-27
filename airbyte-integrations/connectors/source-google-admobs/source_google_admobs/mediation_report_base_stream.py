@@ -171,7 +171,8 @@ class MediationReport(MediationReportBase,IncrementalMixin):
         slice = []
         today: datetime.date = datetime.date.today()
         yesterday: datetime.date = datetime.date.today() - datetime.timedelta(days=1)
-        start_date: datetime.date = self.state[self.cursor_field] - datetime.timedelta(days=7)
+        number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
+        start_date: datetime.date = self.state[self.cursor_field] - datetime.timedelta(days=number_days_backward)
 
         while start_date < today:
             end_date: datetime.date = start_date 
