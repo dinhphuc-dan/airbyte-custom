@@ -92,20 +92,19 @@ class AppItemsIDStream(BaseStream):
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         result = {}
         response_json = response.json()
-        for data in response_json["data"]["data"]:
-            record = data
-        for category in record["categories"]:
-            for item in category["items"]:
-                result.update({"app_name": self.app_name})
-                result.update({"app_id": record['app_id']})
-                result.update({"module_name": record['name']})
-                result.update({"module_id": record['id']})
-                result.update({"categories_name": category['name']})
-                result.update({"categories_id": category['id']})
-                result.update({"item_name": item['name']})
-                result.update({"item_id": item['id']})
-                result.update({"item_image_link": item['icon']})
-                yield result
+        for record in response_json["data"]["data"]:
+            for category in record["categories"]:
+                for item in category["items"]:
+                    result.update({"app_name": self.app_name})
+                    result.update({"app_id": record['app_id']})
+                    result.update({"module_name": record['name']})
+                    result.update({"module_id": record['id']})
+                    result.update({"categories_name": category['name']})
+                    result.update({"categories_id": category['id']})
+                    result.update({"item_name": item['name']})
+                    result.update({"item_id": item['id']})
+                    result.update({"item_image_link": item['icon']})
+                    yield result
 
 
 # Source
