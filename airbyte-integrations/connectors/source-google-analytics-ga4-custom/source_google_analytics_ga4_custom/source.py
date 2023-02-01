@@ -40,6 +40,11 @@ class GoogleAnalyticsGa4CustomAbstractStream(HttpStream, ABC):
 class GoogleAnalyticsGa4CustomStreamTestConnectionStream(GoogleAnalyticsGa4CustomAbstractStream):
     primary_key = None
 
+    def __init__(self,property_id, *args, **kwargs):
+        """Due to multiple inheritance, so need MRO"""
+        super(GoogleAnalyticsGa4CustomStreamTestConnectionStream, self).__init__(*args, **kwargs)
+        self.property_id = property_id
+
     @property
     def http_method(self) -> str:
        """ Override because using POST. Default by airbyte is GET """
@@ -51,7 +56,7 @@ class GoogleAnalyticsGa4CustomStreamTestConnectionStream(GoogleAnalyticsGa4Custo
     def path(
         self, *, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
     ) -> str:
-        return f"properties/{self.config['property_id']}/metadata"
+        return f"properties/{self.property_id}/metadata"
 
     def parse_response(
         self,
@@ -68,10 +73,12 @@ class GoogleAnalyticsGa4CustomStream(GoogleAnalyticsGa4CustomAbstractStream,Incr
     primary_key = None
     number_days_backward_default = 7
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, property_name, property_id, *args, **kwargs):
         """Due to multiple inheritance, so need MRO"""
         super(GoogleAnalyticsGa4CustomStream, self).__init__(*args, **kwargs)
         self._cursor_value = None
+        self.propery_name = property_name
+        self.propery_id = property_id
         self.custom_reports = json.loads(self.config["custom_reports"])
 
     @property
@@ -82,7 +89,8 @@ class GoogleAnalyticsGa4CustomStream(GoogleAnalyticsGa4CustomAbstractStream,Incr
     @property
     def name(self) -> str:
         """Override method to get stream name according to custom report name """
-        stream_name = self.custom_reports['name']
+        # stream_name = self.custom_reports['name']
+        stream_name = self.propery_name
         return stream_name
 
     @property
@@ -106,7 +114,8 @@ class GoogleAnalyticsGa4CustomStream(GoogleAnalyticsGa4CustomAbstractStream,Incr
     def path(
         self, *, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
     ) -> str:
-        return f"properties/{self.config['property_id']}:runReport"
+        # return f"properties/{self.config['property_id']}:runReport"
+        return f"properties/{self.propery_id}:runReport"
     
     def get_dimensions(self) ->list:
             return self.custom_reports['dimensions']
@@ -226,10 +235,31 @@ class GoogleAnalyticsGa4CustomStream(GoogleAnalyticsGa4CustomAbstractStream,Incr
 # Source
 class SourceGoogleAnalyticsGa4Custom(AbstractSource):
 
+    @staticmethod
+    def _get_one_property_id(config) -> str:
+        property_list = json.loads(config["property_list_as_dict"])
+        property_id_list = []
+        for property_name,property_id in property_list.items():
+            property_id_list.append(property_id)
+        return property_id_list[0]
+
+    @staticmethod
+    def _generate_streams(config) -> list[Any]:
+        auth = GoogleServiceKeyAuthenticator(credentials= json.loads(config["credentials"]["credentials_json"]))
+        property_list = json.loads(config["property_list_as_dict"])
+        for property_name,property_id  in property_list.items():
+            yield GoogleAnalyticsGa4CustomStream(
+                authenticator=auth,
+                config=config,
+                property_name=property_name,
+                property_id=property_id
+            )
+
     def check_connection(self, logger, config) -> Tuple[bool, any]:
         try: 
             auth = GoogleServiceKeyAuthenticator(credentials= json.loads(config["credentials"]["credentials_json"]))
-            stream = GoogleAnalyticsGa4CustomStreamTestConnectionStream(authenticator=auth,config=config)
+            property_id = self._get_one_property_id(config=config)
+            stream = GoogleAnalyticsGa4CustomStreamTestConnectionStream(authenticator=auth,config=config, property_id=property_id)
             stream_records = stream.read_records(sync_mode="full_refresh")
             record = next(stream_records)
             logger.info(f"There is one of records: {record}")
@@ -239,4 +269,7 @@ class SourceGoogleAnalyticsGa4Custom(AbstractSource):
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
         auth = GoogleServiceKeyAuthenticator(credentials= json.loads(config["credentials"]["credentials_json"]))
-        return [GoogleAnalyticsGa4CustomStream(authenticator=auth,config=config)]
+        streams = []
+        streams.extend(self._generate_streams(config=config))
+        # return [GoogleAnalyticsGa4CustomStream(authenticator=auth,config=config)]
+        return streams

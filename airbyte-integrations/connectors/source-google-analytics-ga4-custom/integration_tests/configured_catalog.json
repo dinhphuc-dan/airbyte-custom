@@ -2,7 +2,16 @@
   "streams": [
     {
       "stream": {
-        "name": "Revenue by ad source",
+        "name": "Govo Aesthetic",
+        "json_schema": {},
+        "supported_sync_modes": ["full_refresh"]
+      },
+      "sync_mode": "full_refresh",
+      "destination_sync_mode": "overwrite"
+    },
+    {
+      "stream": {
+        "name": "Govo AlarmClock",
         "json_schema": {},
         "supported_sync_modes": ["full_refresh"]
       },

@@ -5,7 +5,7 @@ connectionSpecification:
   type: object
   required:
     - credentials
-    - property_id
+    - property_list_as_dict
     - start_date
     - custom_reports
   properties:
@@ -19,12 +19,18 @@ connectionSpecification:
           required:
             - credentials_json
           properties:
+            auth_type:
+              type: string
+              const: service
+              order: 0
             credentials_json:
               title: Service Account Json Key
               type: string
+              order: 1
               airbyte_secret: true
-    property_id:
-      title: Property ID
+    property_list_as_dict:
+      title: List Property Name and ID
+      description: in json format {....}, with key and value as "Property Name" and "Property ID" respectively
       type: string
       order: 2
     start_date:
@@ -36,7 +42,7 @@ connectionSpecification:
       title: Custom Reports
       type: string
       order: 4
-      description: in json format, use this link to check <a href=\"https://ga-dev-tools.web.app/dimensions-metrics-explorer/\"> this link </a>
+      description: in json format {...}, with key as "dimensions" and "metrics", and value as look up this link - https://ga-dev-tools.web.app/dimensions-metrics-explorer/
     number_days_backward:
       title: Number of days backward to get data
       type: string
