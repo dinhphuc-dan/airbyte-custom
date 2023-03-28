@@ -59,6 +59,10 @@ connectionSpecification:
           - COUNTRY
           - FORMAT
           - PLATFORM
+          - APP_VERSION_NAME
+          - MOBILE_OS_VERSION
+          - GMA_SDK_VERSION
+          - SERVING_RESTRICTION
     custom_report_metrics:
       title: Custom Reports Metrics
       description: Pick iteams in list
