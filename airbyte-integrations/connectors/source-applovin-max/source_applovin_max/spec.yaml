@@ -58,7 +58,7 @@ connectionSpecification:
       title: Number of days backward to get data
       type: string
       order: 4
-      description: In case data from MAX change
+      description: In case data from MAX change, default is 7 days
 
 
 
