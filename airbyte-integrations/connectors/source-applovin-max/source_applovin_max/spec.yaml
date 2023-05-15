@@ -1,0 +1,66 @@
+documentationUrl: https://docsurl.com
+connectionSpecification:
+  $schema: http://json-schema.org/draft-07/schema#
+  title: Applovin Max Spec
+  type: object
+  required:
+    - api_key
+    - start_date
+  properties:
+    api_key:
+      title: API Key
+      description: Your API Report Key, for ex, Hyfi8Mkct…WiWP466a1VBL7eUfUlD9JBh
+      order: 0
+      type: string
+    start_date: 
+      title: Start Date
+      description: The start date in the format YYYY-MM-DD
+      order: 1
+      type: string
+      format: date
+    custom_report_dimensions:
+      title: Custom Reports Dimension
+      description: Pick items in list. Default have DAY, PACKAGE NAME and PLATFORM 
+      order: 2
+      type: array
+      minItems: 0
+      uniqueItems: true
+      items:
+        type: string
+        enum:
+          - ad_format
+          - ad_unit_waterfall_name
+          - country
+          - custom_network_name
+          - device_type
+          - has_idfa
+          - max_ad_unit
+          - max_ad_unit_id
+          - max_ad_unit_test
+          - network
+          - network_placement
+    custom_report_metrics:
+      title: Custom Reports Metrics
+      description: Pick iteams in list, https://dash.applovin.com/documentation/mediation/reporting-api/max-ad-revenue
+      order: 3
+      type: array
+      minItems: 0
+      uniqueItems: true
+      items:
+        type: string
+        enum:
+          - attempts
+          - responses
+          - impressions
+          - estimated_revenue
+    number_days_backward:
+      title: Number of days backward to get data
+      type: string
+      order: 4
+      description: In case data from MAX change
+
+
+
+
+
+

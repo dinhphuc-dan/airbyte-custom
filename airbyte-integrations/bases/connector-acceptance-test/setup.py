@@ -6,7 +6,7 @@
 import setuptools
 
 MAIN_REQUIREMENTS = [
-    "airbyte-cdk~=0.2",
+    "airbyte-cdk==0.2",
     "docker~=5.0.3",
     "PyYAML~=5.4",
     "icdiff~=1.9",
@@ -29,7 +29,7 @@ MAIN_REQUIREMENTS = [
     # Pinning requests and urllib3 to avoid an issue with dockerpy and requests 2.
     # Related issue: https://github.com/docker/docker-py/issues/3113
     "urllib3<2.0",
-    "requests<2.29.0",
+    "requests",
 ]
 
 setuptools.setup(

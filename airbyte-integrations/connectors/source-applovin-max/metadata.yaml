@@ -1,0 +1,20 @@
+data:
+  allowedHosts:
+    hosts:
+      - TODO # Please change to the hostname of the source.
+  registries:
+    oss:
+      enabled: false
+  connectorSubtype: api
+  connectorType: source
+  definitionId: 4437d430-13f8-45fa-b82d-52a0ad294c00
+  dockerImageTag: 0.1.0
+  dockerRepository: airbyte/source-applovin-max
+  githubIssueLabel: source-applovin-max
+  icon: applovin-max.svg
+  license: MIT
+  name: Applovin Max
+  releaseDate: TODO
+  releaseStage: alpha
+  supportUrl: https://docs.airbyte.com/integrations/sources/applovin-max
+metadataSpecVersion: "1.0"
