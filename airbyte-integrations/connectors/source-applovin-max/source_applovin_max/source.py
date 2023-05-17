@@ -40,7 +40,7 @@ class ApplovinMaxStream(HttpStream, ABC):
         yield {}
 
 ''' Check connection Stream'''
-class Applovin_Max_Check_Connection(ApplovinMaxStream):
+class ApplovinMaxCheckConnection(ApplovinMaxStream):
     primary_key = None
 
     def path(
@@ -209,7 +209,7 @@ class ApplovinMaxCustomReport(ApplovinMaxFullReport):
     @property
     def name(self) -> str:
         """Override method to get stream name according to each package name """
-        prefix = "CustomRealtime_"
+        prefix = "CustomReport_"
         stream_name = prefix + self.package_name
         return stream_name
     
@@ -281,7 +281,7 @@ class SourceApplovinMax(AbstractSource):
 
     def _get_package_name(self,config) -> list:
         list_package_name = []
-        list_package_stream = Applovin_Max_Check_Connection(config=config) 
+        list_package_stream = ApplovinMaxCheckConnection(config=config) 
         list_package_record: list = list_package_stream.read_records(sync_mode="full_refresh")
         list_package_name.extend(list_package_record)
         return list_package_name
@@ -307,7 +307,7 @@ class SourceApplovinMax(AbstractSource):
             logger.info(f"load API key {config.get('api_key')}")
             logger.info(f"load Package {config.get('package_name')}")
             logger.info(f"load start_date {config.get('start_date')}")
-            check_connection_steam = Applovin_Max_Check_Connection(config=config) 
+            check_connection_steam = ApplovinMaxCheckConnection(config=config) 
             logger.info(f"Successfully build {check_connection_steam}")
             check_connection_records = check_connection_steam.read_records(sync_mode="full_refresh")
             logger.info(f"Successfully read records {check_connection_records}")

@@ -1,0 +1,30 @@
+documentationUrl: https://docsurl.com
+connectionSpecification:
+  $schema: http://json-schema.org/draft-07/schema#
+  title: Apple Store Custom Spec
+  type: object
+  required:
+    - issuer_id
+    - key_id
+    - private_key
+    - vendor_id
+  properties:
+    issuer_id:
+      title: Issuer ID
+      type: string
+      description: Your issuer ID from the API Keys page in App Store Connect; for example, 57246542-96fe-1a63-e053-0824d011072a
+      order: 0
+    key_id:
+      title: Key ID
+      type: string
+      description: Your API key ID from API Keys page in App Store Connect; for example 2X9R4HXF34
+      order: 1
+    private_key:
+      title: Private Key
+      description: Your API private key in the file that downloaded from "Download API Key" link next to the new API key from API Keys page in App Store Connect; for example, -----BEGIN PRIVATE KEY----- abc -----END PRIVATE KEY-----
+      order: 2
+    vendor_id:
+      title: Vendor ID
+      description: You can find your vendor number in Payments and Financial Reports, your Vendor Number appears in the top left hand corner under your Legal Entity Name; for example, 1234567
+      order: 3
+

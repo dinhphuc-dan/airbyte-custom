@@ -1,0 +1,20 @@
+data:
+  allowedHosts:
+    hosts:
+      - TODO # Please change to the hostname of the source.
+  registries:
+    oss:
+      enabled: false
+  connectorSubtype: api
+  connectorType: source
+  definitionId: c1f4c923-f2e4-4dcb-b6f5-bc364d9279e3
+  dockerImageTag: 0.1.0
+  dockerRepository: airbyte/source-apple-store-custom
+  githubIssueLabel: source-apple-store-custom
+  icon: apple-store-custom.svg
+  license: MIT
+  name: Apple Store Custom
+  releaseDate: TODO
+  releaseStage: alpha
+  supportUrl: https://docs.airbyte.com/integrations/sources/apple-store-custom
+metadataSpecVersion: "1.0"
