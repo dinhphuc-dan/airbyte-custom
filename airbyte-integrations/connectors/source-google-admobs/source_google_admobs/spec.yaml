@@ -44,6 +44,7 @@ connectionSpecification:
       type: string
       description: The start date in the format YYYY-MM-DD
       order: 5
+      format: date
     custom_report_dimensions:
       title: Custom Reports Dimension
       description: Pick iteams in list. Default have DATE, APP and AD_SOURCE
