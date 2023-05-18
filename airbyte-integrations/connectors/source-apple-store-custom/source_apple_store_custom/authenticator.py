@@ -2,6 +2,7 @@
 # Copyright (c) 2022 Airbyte, Inc., all rights reserved.
 #
 import time
+import gzip
 from datetime import datetime, timedelta
 import json
 import jwt
@@ -42,6 +43,7 @@ class AppleStoreConnectAPIAuthenticator(requests.auth.AuthBase):
         header = self._get_jwt_header()
         signed_jwt_token = jwt.encode(payload=payload, key=self._private_key,algorithm=self._jwt_encode_algorithm,headers=header)
         return signed_jwt_token
+        
 
     def __call__(self, r: requests.Request) -> requests.Request:
         signed_token = self._get_signed_token()
@@ -57,9 +59,38 @@ class AppleStoreConnectAPIAuthenticator(requests.auth.AuthBase):
 # print(foo._private_key)
 # signed_token = foo._get_signed_token()
 # headers = {"Authorization": f"Bearer {signed_token}"}
-# url_base = "https://api.appstoreconnect.apple.com/v1/apps"
+# url_base = "https://api.appstoreconnect.apple.com/v1/salesReports"
+# request_params = {
+#         "filter[frequency]":"DAILY",
+#         "filter[reportSubType]":"SUMMARY",
+#         "filter[reportType]":"SALES",
+#         "filter[vendorNumber]":config["vendor_id"],
+#         "filter[reportDate]":'2023-05-11'
+# }
 # print(url_base)
 # print(headers)
-# r = requests.request(method="GET", url=url_base, headers=headers)
-# x = r.json()
-# print(x)
+# r = requests.request(method="GET", url=url_base, headers=headers,params=request_params)
+# x = r.status_code
+# y = r.content
+# z = gzip.decompress(r.content)
+# h = z.decode('utf-8')
+# g = h.split('\n')
+
+# list_column_name = g[0].split('\t')
+# number_column = len(list_column_name)
+# print(list_column_name)
+# print(len(g[0]))
+# print(number_column)
+# result = {}
+# for number in  range(1,len(g)):
+#     k = (g[number].split('\t'))
+#     if number_column == len(k):
+#         for no in range(0, number_column):
+#             result.update({list_column_name[no] : k[no]})
+
+# print(result)
+# print(type(z))
+# print(type(h))
+# print(type(g))
+
+   

@@ -8,23 +8,33 @@ connectionSpecification:
     - key_id
     - private_key
     - vendor_id
+    - start_date
   properties:
     issuer_id:
       title: Issuer ID
-      type: string
       description: Your issuer ID from the API Keys page in App Store Connect; for example, 57246542-96fe-1a63-e053-0824d011072a
       order: 0
+      type: string
     key_id:
       title: Key ID
-      type: string
       description: Your API key ID from API Keys page in App Store Connect; for example 2X9R4HXF34
       order: 1
+      type: string
     private_key:
       title: Private Key
-      description: Your API private key in the file that downloaded from "Download API Key" link next to the new API key from API Keys page in App Store Connect; for example, -----BEGIN PRIVATE KEY----- abc -----END PRIVATE KEY-----
+      description: Your API private key in the file that downloaded from "Download API Key" link next to the new API key from API Keys page in App Store Connect; for example, -----BEGIN PRIVATE KEY----- OneStringOnlyWithoutMutipleLine -----END PRIVATE KEY-----; Mare sure there is only one line string in the middle part of the key 
       order: 2
+      type: string
+      multiline: true
     vendor_id:
       title: Vendor ID
       description: You can find your vendor number in Payments and Financial Reports, your Vendor Number appears in the top left hand corner under your Legal Entity Name; for example, 1234567
       order: 3
+      type: string
+    start_date: 
+      title: Start Date
+      description: The date start getting report
+      type: string
+      order: 4
+      format: date
 
