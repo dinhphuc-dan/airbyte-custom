@@ -104,16 +104,11 @@ class RealtimeCustomReport(MediationReport):
         today: datetime.date = datetime.date.today()
         start_date: datetime.date = self.state[self.cursor_field]
 
-        while start_date <= today:
-
-            end_date: datetime.date = start_date
-            slice.append(
-                {
-                    'startDate': utils.turn_date_to_dict(start_date),
-                    'endDate': utils.turn_date_to_dict(end_date),
-                }
-            )
-            start_date: datetime.date = end_date + datetime.timedelta(days=1)
+        slice.append({
+            'startDate': utils.turn_date_to_dict(start_date),
+            'endDate': utils.turn_date_to_dict(today),
+            }
+        )
         self.logger.info(f"stream slice {slice}")
         return slice or [None]
     
