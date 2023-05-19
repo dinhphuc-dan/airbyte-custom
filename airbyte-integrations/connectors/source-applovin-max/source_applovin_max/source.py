@@ -229,15 +229,12 @@ class ApplovinMaxCustomReport(ApplovinMaxFullReport):
         today: datetime.date = datetime.date.today()
         start_date: datetime.date = self.state[self.cursor_field]
 
-        while start_date <= today:
-            end_date: datetime.date = start_date 
-            slice.append(
-                {
-                    'start': utils.date_to_string(start_date),
-                    'end': utils.date_to_string(end_date),
-                }
-            )
-            start_date: datetime.date = end_date + datetime.timedelta(days=1)
+        slice.append(
+            {
+                'start': utils.date_to_string(start_date),
+                'end': utils.date_to_string(today),
+            }
+        )
 
         self.logger.info(f"stream slice {slice}")
         return slice or [None]
