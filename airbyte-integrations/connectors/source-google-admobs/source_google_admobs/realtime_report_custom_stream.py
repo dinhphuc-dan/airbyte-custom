@@ -151,6 +151,6 @@ class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
         for record in records:
             next_cursor_value = utils.string_to_date(record[self.cursor_field], self._record_date_format)
             self._cursor_value = max(self._cursor_value, next_cursor_value) if self._cursor_value else next_cursor_value
-            self.logger.info(f"Record date is {record['DATE']} and self._cursor_value {self._cursor_value} ")
+            # self.logger.info(f"Record date is {record['DATE']} and self._cursor_value {self._cursor_value} ")
             yield record
     
