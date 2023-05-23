@@ -12,14 +12,26 @@ from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
 import requests
 from source_google_admobs import utils
 from source_google_admobs import schemas
-from source_google_admobs.mediation_report_base_stream  import MediationReport
+from source_google_admobs.mediation_report_base_stream  import MediationReportBase
+from airbyte_cdk.models import SyncMode
+from airbyte_cdk.sources.streams import IncrementalMixin
 
-class RealtimeCustomReport(MediationReport):
+class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
     """
-    Subclass of Incremental Network Report
+    Subclass of Incremental Mediation Report
     Adjust only some part so that users can pick custom items
     """
     primary_key = "uuid"
+    _record_date_format = "%Y%m%d"
+
+    def __init__(self, *args, **kwargs):
+        """Due to multiple inheritance, so need MRO"""
+        super(RealtimeCustomReport, self).__init__(*args, **kwargs)
+        self._cursor_value = None
+  
+    @property
+    def cursor_field(self) -> Union[str, List[str]]:
+        return "DATE"
 
     """ Override parent name method to add new prefix Custom_MP"""
     @property
@@ -27,6 +39,20 @@ class RealtimeCustomReport(MediationReport):
         prefix = "CustomMP"
         stream_name = prefix + self.app_id
         return stream_name
+    
+    @property
+    def state(self) -> Mapping[str, Any]:
+        if self._cursor_value:
+            self.logger.info(f"Cursor Getter with IF {self._cursor_value}")
+            return {self.cursor_field: self._cursor_value}
+        else:
+            self.logger.info(f"Cursor Getter with ELSE {self._cursor_value} and start date is { self.config['start_date'] }")
+            return {self.cursor_field: utils.string_to_date(self.config["start_date"])}
+
+    @state.setter
+    def state(self, value: Mapping[str, Any]):
+        self._cursor_value = utils.string_to_date(value[self.cursor_field]) + datetime.timedelta(days=1)
+        self.logger.info(f"Cursor Setter {self._cursor_value}")
     
     def get_dimensions(self) ->list:
         required_dimensions = ['DATE','APP','AD_SOURCE']
@@ -58,7 +84,7 @@ class RealtimeCustomReport(MediationReport):
 
         metrics = self.get_metrics()
 
-        sort_conditions = [{'dimension': 'DATE', 'order': 'DESCENDING'}]
+        sort_conditions = [{'dimension': 'DATE', 'order': 'ASCENDING'}]
 
         dimension_filters = {'dimension': 'APP','matches_any': {'values': app_id}}
 
@@ -111,7 +137,20 @@ class RealtimeCustomReport(MediationReport):
         )
         self.logger.info(f"stream slice {slice}")
         return slice or [None]
+
+    def read_records(
+        self,
+        sync_mode: SyncMode,
+        cursor_field: List[str] = None,
+        stream_slice: Mapping[str, Any] = None,
+        stream_state: Mapping[str, Any] = None,
+    ) -> Iterable[Mapping[str, Any]]:
+        if not stream_slice:
+            return []
+        records = super().read_records(sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state)
+        for record in records:
+            next_cursor_value = utils.string_to_date(record[self.cursor_field], self._record_date_format)
+            self._cursor_value = max(self._cursor_value, next_cursor_value) if self._cursor_value else next_cursor_value
+            self.logger.info(f"Record date is {record['DATE']} and self._cursor_value {self._cursor_value} ")
+            yield record
     
-
-
-  
