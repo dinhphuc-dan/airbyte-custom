@@ -1,0 +1,53 @@
+documentationUrl: https://docsurl.com
+connectionSpecification:
+  $schema: http://json-schema.org/draft-07/schema#
+  title: Apple Search Ads Custom Spec
+  type: object
+  required:
+    - private_key
+    - client_id
+    - team_id
+    - key_id
+    - org_id
+    - start_date
+  properties:
+    private_key:
+      title: Private Key
+      description: Your private key after using OpenSSL; for example, -----BEGIN PRIVATE KEY----- OneStringOnlyWithoutMutipleLine -----END PRIVATE KEY-----; Mare sure there is only one line string in the middle part of the key. Check the docs <ahref="https://developer.apple.com/documentation/apple_search_ads/implementing_oauth_for_the_apple_search_ads_api">link</a> 
+      order: 0
+      type: string
+      multiline: true
+    client_id:
+      title: Client ID
+      description: Your Cilent ID after exchange public-key.pem in Advanced\Account Settings\API of Apple Search Ads; for ex, SEARCHADS.9703f56c-10ce-4876-8f59-e78e5e23a152
+      order: 1
+      type: string
+    team_id:
+      title: Team ID
+      description: Your Team ID after exchange public-key.pem in Advanced\Account Settings\API of Apple Search Ads; for ex, SEARCHADS.9703f56c-10ce-4876-8f59-e78e5e23a152
+      order: 2
+      type: string
+    key_id:
+      title: Key ID
+      description: Your Key ID after exchange public-key.pem in Advanced\Account Settings\API of Apple Search Ads; for ex, d136aa66-0c3b-4bd4-9892-c20e8db024ab
+      order: 3
+      type: string
+    org_id:
+      title: Org ID
+      description: Your Account ID in setting page; for example, 40669820
+      order: 4
+      type: string
+    start_date: 
+      title: Start Date
+      description: The date start getting report
+      type: string
+      order: 5
+      format: date
+    number_days_backward:
+      title: Number of days backward to get data
+      type: string
+      order: 6
+      description: In case data from Apple change, default is 7 days
+
+
+    

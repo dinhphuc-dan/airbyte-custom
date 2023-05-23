@@ -1,0 +1,20 @@
+data:
+  allowedHosts:
+    hosts:
+      - TODO # Please change to the hostname of the source.
+  registries:
+    oss:
+      enabled: false
+  connectorSubtype: api
+  connectorType: source
+  definitionId: 30511ab2-59e9-40cc-9e0f-e154de2e0e47
+  dockerImageTag: 0.1.0
+  dockerRepository: airbyte/source-apple-search-ads-custom
+  githubIssueLabel: source-apple-search-ads-custom
+  icon: apple-search-ads-custom.svg
+  license: MIT
+  name: Apple Search Ads Custom
+  releaseDate: TODO
+  releaseStage: alpha
+  supportUrl: https://docs.airbyte.com/integrations/sources/apple-search-ads-custom
+metadataSpecVersion: "1.0"
