@@ -247,7 +247,7 @@ class ApplovinMaxCustomReport(ApplovinMaxFullReport):
         request_params.update({"api_key":self.config["api_key"]})
         request_params.update({"format":"json"})
         request_params.update({"filter_package_name":self.package_name})
-        # request_params.update({"columns":"day,package_name,application,estimated_revenue"})
+        request_params.update({"sort_day":"ASC"})
         list_of_dimensions_and_metrics = self.get_dimensions() + self.get_metrics()
         colums = ','.join(list_of_dimensions_and_metrics)
         request_params.update({"columns":colums})
