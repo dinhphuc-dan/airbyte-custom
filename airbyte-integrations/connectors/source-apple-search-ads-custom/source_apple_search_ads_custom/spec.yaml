@@ -17,21 +17,25 @@ connectionSpecification:
       order: 0
       type: string
       multiline: true
+      airbyte_secret: true
     client_id:
       title: Client ID
       description: Your Cilent ID after exchange public-key.pem in Advanced\Account Settings\API of Apple Search Ads; for ex, SEARCHADS.9703f56c-10ce-4876-8f59-e78e5e23a152
       order: 1
       type: string
+      airbyte_secret: true
     team_id:
       title: Team ID
       description: Your Team ID after exchange public-key.pem in Advanced\Account Settings\API of Apple Search Ads; for ex, SEARCHADS.9703f56c-10ce-4876-8f59-e78e5e23a152
       order: 2
       type: string
+      airbyte_secret: true
     key_id:
       title: Key ID
       description: Your Key ID after exchange public-key.pem in Advanced\Account Settings\API of Apple Search Ads; for ex, d136aa66-0c3b-4bd4-9892-c20e8db024ab
       order: 3
       type: string
+      airbyte_secret: true
     org_id:
       title: Org ID
       description: Your Account ID in setting page; for example, 40669820
