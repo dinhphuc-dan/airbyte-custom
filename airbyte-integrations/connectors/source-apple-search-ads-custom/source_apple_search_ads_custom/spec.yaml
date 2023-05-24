@@ -13,7 +13,7 @@ connectionSpecification:
   properties:
     private_key:
       title: Private Key
-      description: Your private key after using OpenSSL; for example, -----BEGIN PRIVATE KEY----- OneStringOnlyWithoutMutipleLine -----END PRIVATE KEY-----; Mare sure there is only one line string in the middle part of the key. Check the docs <ahref="https://developer.apple.com/documentation/apple_search_ads/implementing_oauth_for_the_apple_search_ads_api">link</a> 
+      description: Your private key after using OpenSSL; for example, -----BEGIN PRIVATE KEY----- OneStringOnlyWithoutMutipleLine -----END PRIVATE KEY-----; Mare sure there is only one line string in the middle part of the key. Check the docs <a href="https://developer.apple.com/documentation/apple_search_ads/implementing_oauth_for_the_apple_search_ads_api">link</a> 
       order: 0
       type: string
       multiline: true

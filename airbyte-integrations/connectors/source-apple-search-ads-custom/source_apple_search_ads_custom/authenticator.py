@@ -8,6 +8,9 @@ import json
 import jwt
 import requests
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Tuple, Union
+import logging
+
+logger = logging.getLogger('airbyte')
 
 class AppleSearchAdsAPIAuthenticator(requests.auth.AuthBase):
     _jwt_encode_algorithm = "ES256"
@@ -74,13 +77,13 @@ class AppleSearchAdsAPIAuthenticator(requests.auth.AuthBase):
 
     def _handel_access_token_expire_time(self):
         if not self._access_token:
-            print("happen in auth if not")
+            # logger.info("happen in auth if not")
             self._access_token = self._get_access_token()
         elif self._access_token["access_token_expire_time"] < datetime.now():
-            print("happen in auth elif")
+            logger.info("happen in auth elif")
             self._access_token = self._get_access_token()
         else:
-            print("happen in auth else")
+            # logger.info("happen in auth else")
             self._access_token
         return self._access_token
 
