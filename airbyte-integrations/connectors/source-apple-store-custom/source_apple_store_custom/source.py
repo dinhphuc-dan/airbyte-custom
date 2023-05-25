@@ -103,6 +103,7 @@ class AppleStoreSaleReportBaseStream(AppleStoreCustomStream):
 
 # Basic incremental stream
 class AppleStoreSaleReportStream(AppleStoreSaleReportBaseStream, IncrementalMixin):
+    number_days_backward_default = 7
     _record_date_format = "%m/%d/%Y"
 
     def __init__(self, **kwargs):
@@ -117,10 +118,10 @@ class AppleStoreSaleReportStream(AppleStoreSaleReportBaseStream, IncrementalMixi
     @property
     def state(self) -> Mapping[str, Any]:
         if self._cursor_value:
-            self.logger.info(f"Cursor Getter with IF {self._cursor_value}")
+            # self.logger.info(f"Cursor Getter with IF {self._cursor_value}")
             return {self.cursor_field: self._cursor_value}
         else:
-            self.logger.info(f"Cursor Getter with ELSE {self._cursor_value}")
+            # self.logger.info(f"Cursor Getter with ELSE {self._cursor_value}")
             return {self.cursor_field: utils.string_to_date(self.config["start_date"])}
 
     @state.setter
@@ -131,7 +132,8 @@ class AppleStoreSaleReportStream(AppleStoreSaleReportBaseStream, IncrementalMixi
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice = []
         yesterday: datetime.date = datetime.date.today() - datetime.timedelta(days=1)
-        start_date: datetime.date = self.state[self.cursor_field]
+        number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
+        start_date: datetime.date = self.state[self.cursor_field] - datetime.timedelta(days=number_days_backward)
         while start_date < yesterday:
             end_date: datetime.date = start_date 
             slice.append(
@@ -154,6 +156,7 @@ class AppleStoreSaleReportStream(AppleStoreSaleReportBaseStream, IncrementalMixi
         request_params.update({"filter[vendorNumber]":self.vendor_number})
         request_params.update({"filter[version]":self.report_version})
         request_params.update(stream_slice)
+        self.logger.info(f"Sending slice date {stream_slice['filter[reportDate]']}")
 
         return request_params
     

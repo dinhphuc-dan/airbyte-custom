@@ -40,4 +40,9 @@ connectionSpecification:
       type: string
       order: 4
       format: date
+    number_days_backward:
+      title: Number of days backward to get data
+      type: string
+      order: 6
+      description: In case data from Apple change, default is 7 days
 
