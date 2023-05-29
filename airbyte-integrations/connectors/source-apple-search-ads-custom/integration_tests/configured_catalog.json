@@ -2,7 +2,7 @@
   "streams": [
     {
       "stream": {
-        "name": "Campain_Level_Report",
+        "name": "AdGroup_Level_Report",
         "json_schema": {},
         "supported_sync_modes": ["full_refresh", "incremental"]
       },

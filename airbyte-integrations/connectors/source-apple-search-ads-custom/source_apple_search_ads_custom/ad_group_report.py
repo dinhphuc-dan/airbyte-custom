@@ -59,7 +59,7 @@ class AppleSearchAdsAdGroupBaseStream(AppleSearchAdsCustomStream):
                 result.update({"adGroupStatus": row['metadata']['adGroupStatus']})
                 result.update({"adGroupServingStatus": row['metadata']['adGroupServingStatus']})
                 result.update({"adGroupServingStateReasons": row['metadata']['adGroupServingStateReasons']})
-                result.update({"automatedKeywordsOptIn": row['metadata']['automatedKeywordsOptIn']})
+                result.update({"automatedKeywordsOptIn": row['metadata'].get('automatedKeywordsOptIn')})
                 result.update({"adGroupDisplayStatus": row['metadata']['adGroupDisplayStatus']})
                 result.update({"orgId": row['metadata']['orgId']})
                 result.update({"pricingModel": row['metadata']['pricingModel']})
