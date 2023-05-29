@@ -41,7 +41,7 @@ class SourceGoogleAdmobs(AbstractSource):
         list_app_records = list_app_stream.read_records(sync_mode="full_refresh")
 
         for record in list_app_records:
-            list_app_name_to_id_dict.update({record.get("app_name"): record.get("app_id")})
+            list_app_name_to_id_dict.update({record.get("app_id"): record.get("app_name")})
         return list_app_name_to_id_dict
 
 
@@ -77,7 +77,7 @@ class SourceGoogleAdmobs(AbstractSource):
         auth = self.get_authenticator(config)
         list_app_name_to_id_dict = self._get_app_name_to_id_dict(self, config)
 
-        for app_name, app_id in list_app_name_to_id_dict.items():
+        for app_id, app_name  in list_app_name_to_id_dict.items():
             yield NetworkReport(
                 authenticator=auth,
                 config=config,
@@ -91,7 +91,7 @@ class SourceGoogleAdmobs(AbstractSource):
         auth = self.get_authenticator(config)
         list_app_name_to_id_dict = self._get_app_name_to_id_dict(self, config)
 
-        for app_name, app_id in list_app_name_to_id_dict.items():
+        for app_id, app_name in list_app_name_to_id_dict.items():
             yield MediationReport(
                 authenticator=auth,
                 config=config,
@@ -105,7 +105,7 @@ class SourceGoogleAdmobs(AbstractSource):
         auth = self.get_authenticator(config)
         list_app_name_to_id_dict = self._get_app_name_to_id_dict(self, config)
 
-        for app_name, app_id in list_app_name_to_id_dict.items():
+        for app_id, app_name in list_app_name_to_id_dict.items():
             yield RealtimeCustomReport(
                 authenticator=auth,
                 config=config,
