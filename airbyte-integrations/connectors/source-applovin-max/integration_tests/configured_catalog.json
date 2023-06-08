@@ -2,7 +2,7 @@
   "streams": [
     {
       "stream": {
-        "name": "CustomReport_com.volio.stickers.heart.crown.camera.photoeditor",
+        "name": "CustomReport_ios_emojiconnect.emojimatch.emojipuzzle",
         "json_schema": {},
         "supported_sync_modes": ["full_refresh", "incremental"]
       },

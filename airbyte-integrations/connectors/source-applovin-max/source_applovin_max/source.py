@@ -58,16 +58,15 @@ class ApplovinMaxCheckConnection(ApplovinMaxStream):
         request_params.update({"end":today})
         request_params.update({"api_key":self.config["api_key"]})
         request_params.update({"format":"json"})
-        request_params.update({"columns":"package_name"})
+        request_params.update({"columns":"package_name,platform"})
         return request_params
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         response_json = response.json()
-        list_package_name = []
+        list_package_name_and_platform = []
         for record in response_json['results']:
-            for key, package_name_value in record.items():
-                list_package_name.append(package_name_value)
-        return list_package_name
+            list_package_name_and_platform.append({record['package_name']: record['platform']})
+        return list_package_name_and_platform
 
         ''' use when to check raw response from API'''
         # yield response_json
@@ -76,17 +75,19 @@ class ApplovinMaxCheckConnection(ApplovinMaxStream):
 class ApplovinMaxReportBase(ApplovinMaxStream):
     primary_key = None
 
-    def __init__(self, package_name: str, **kwargs):
+    def __init__(self, package_and_platform: dict, **kwargs):
         """override __init__ to add package name"""
         super().__init__(**kwargs)
-        self.package_name = package_name
         self._cursor_value = None
+        for k,v in package_and_platform.items():
+            self.package_name = k
+            self.platform = v
     
     @property
     def name(self) -> str:
         """Override method to get stream name according to each package name """
         prefix = "FullReport_"
-        stream_name = prefix + self.package_name
+        stream_name = prefix + self.platform + "_" + self.package_name
         return stream_name
 
     def path(self, **kwargs) -> str:
@@ -145,10 +146,10 @@ class ApplovinMaxFullReport(ApplovinMaxReportBase,IncrementalMixin):
     @property
     def state(self) -> Mapping[str, Any]:
         if self._cursor_value:
-            self.logger.info(f"Cursor Getter with IF {self._cursor_value}")
+            # self.logger.info(f"Cursor Getter with IF {self._cursor_value}")
             return {self.cursor_field: self._cursor_value}
         else:
-            self.logger.info(f"Cursor Getter with ELSE {self._cursor_value}")
+            # self.logger.info(f"Cursor Getter with ELSE {self._cursor_value}")
             return {self.cursor_field: utils.string_to_date(self.config["start_date"])}
 
     @state.setter
@@ -183,8 +184,10 @@ class ApplovinMaxFullReport(ApplovinMaxReportBase,IncrementalMixin):
         request_params.update({"api_key":self.config["api_key"]})
         request_params.update({"format":"json"})
         request_params.update({"filter_package_name":self.package_name})
+        request_params.update({"filter_platform":self.platform})
         # request_params.update({"columns":"day,package_name,application,estimated_revenue"})
         request_params.update({"columns":"day,package_name,platform,application,ad_format,ad_unit_waterfall_name,country,custom_network_name,device_type,has_idfa,max_ad_unit,max_ad_unit_id,max_ad_unit_test,network,network_placement,attempts,responses,impressions,estimated_revenue"})
+        self.logger.info(f" stream slice date {stream_slice['start']} - {stream_slice['end']}")
         return request_params
     
     def read_records(
@@ -210,7 +213,7 @@ class ApplovinMaxCustomReport(ApplovinMaxFullReport):
     def name(self) -> str:
         """Override method to get stream name according to each package name """
         prefix = "CustomReport_"
-        stream_name = prefix + self.package_name
+        stream_name = prefix + self.platform + "_" + self.package_name
         return stream_name
     
     def get_dimensions(self) ->list:
@@ -247,10 +250,12 @@ class ApplovinMaxCustomReport(ApplovinMaxFullReport):
         request_params.update({"api_key":self.config["api_key"]})
         request_params.update({"format":"json"})
         request_params.update({"filter_package_name":self.package_name})
+        request_params.update({"filter_platform":self.platform})
         request_params.update({"sort_day":"ASC"})
         list_of_dimensions_and_metrics = self.get_dimensions() + self.get_metrics()
         colums = ','.join(list_of_dimensions_and_metrics)
         request_params.update({"columns":colums})
+        self.logger.info(f" stream slice date {stream_slice['start']} - {stream_slice['end']}")
         return request_params
 
     def get_json_schema(self) -> Mapping[str, Any]:
@@ -277,32 +282,30 @@ class ApplovinMaxCustomReport(ApplovinMaxFullReport):
 class SourceApplovinMax(AbstractSource):
 
     def _get_package_name(self,config) -> list:
-        list_package_name = []
+        list_package_and_platform = []
         list_package_stream = ApplovinMaxCheckConnection(config=config) 
-        list_package_record: list = list_package_stream.read_records(sync_mode="full_refresh")
-        list_package_name.extend(list_package_record)
-        return list_package_name
+        list_package_record: Iterable = list_package_stream.read_records(sync_mode="full_refresh")
+        list_package_and_platform.extend(list_package_record)
+        return list_package_and_platform
 
     def _generate_applovin_max_full_report_stream(self, config) -> list[Stream]:
-        list_package_name = self._get_package_name(config=config)
-        for package_name in list_package_name:
+        list_package_and_platform = self._get_package_name(config=config)
+        for package_and_platform in list_package_and_platform:
             yield ApplovinMaxFullReport(
-                package_name=package_name,
+                package_and_platform=package_and_platform,
                 config=config
             )
     
     def _generate_applovin_max_custom_report_stream(self, config) -> list[Stream]:
-        list_package_name = self._get_package_name(config=config)
-        for package_name in list_package_name:
+        list_package_and_platform = self._get_package_name(config=config)
+        for package_and_platform in list_package_and_platform:
             yield ApplovinMaxCustomReport(
-                package_name=package_name,
+                package_and_platform=package_and_platform,
                 config=config
             )
 
     def check_connection(self, logger, config) -> Tuple[bool, any]:
         try:
-            logger.info(f"load API key {config.get('api_key')}")
-            logger.info(f"load Package {config.get('package_name')}")
             logger.info(f"load start_date {config.get('start_date')}")
             check_connection_steam = ApplovinMaxCheckConnection(config=config) 
             logger.info(f"Successfully build {check_connection_steam}")
