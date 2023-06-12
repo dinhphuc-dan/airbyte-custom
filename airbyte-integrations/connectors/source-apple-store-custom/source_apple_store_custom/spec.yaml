@@ -45,4 +45,9 @@ connectionSpecification:
       type: string
       order: 6
       description: In case data from Apple change, default is 7 days
+    time_zone:
+      title: Your local timezone
+      type: string
+      order: 7
+      description: Default is UTC, get timezone name in https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 

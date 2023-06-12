@@ -8,6 +8,7 @@ from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
 import gzip
 import requests
 import datetime
+import pendulum
 
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream, IncrementalMixin
@@ -131,7 +132,11 @@ class AppleStoreSaleReportStream(AppleStoreSaleReportBaseStream, IncrementalMixi
     
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice = []
-        yesterday: datetime.date = datetime.date.today() - datetime.timedelta(days=1)
+        # yesterday: datetime.date = datetime.date.today() - datetime.timedelta(days=1)
+        if self.config.get('time_zone'):
+            yesterday = pendulum.yesterday(self.config['time_zone'])
+        else:
+            today = pendulum.yesterday()
         number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
         start_date: datetime.date = self.state[self.cursor_field] - datetime.timedelta(days=number_days_backward)
         while start_date < yesterday:
