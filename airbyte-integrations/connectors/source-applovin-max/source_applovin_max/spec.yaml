@@ -59,6 +59,11 @@ connectionSpecification:
       type: string
       order: 4
       description: In case data from MAX change, default is 7 days
+    time_zone:
+      title: Your local timezone
+      type: string
+      order: 5
+      description: Default is UTC, get timezone name in https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 
 
 
