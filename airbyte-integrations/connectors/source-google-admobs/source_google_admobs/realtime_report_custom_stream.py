@@ -3,6 +3,7 @@
 #
 
 import datetime
+import pendulum
 import uuid
 import re
 from abc import ABC
@@ -43,10 +44,10 @@ class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
     @property
     def state(self) -> Mapping[str, Any]:
         if self._cursor_value:
-            self.logger.info(f"Cursor Getter with IF {self._cursor_value}")
+            # self.logger.info(f"Cursor Getter with IF {self._cursor_value}")
             return {self.cursor_field: self._cursor_value}
         else:
-            self.logger.info(f"Cursor Getter with ELSE {self._cursor_value} and start date is { self.config['start_date'] }")
+            # self.logger.info(f"Cursor Getter with ELSE {self._cursor_value} and start date is { self.config['start_date'] }")
             return {self.cursor_field: utils.string_to_date(self.config["start_date"])}
 
     @state.setter
@@ -96,9 +97,8 @@ class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
             'dimensionFilters': dimension_filters
         }
 
-        body_json = {
-                "reportSpec": report_spec
-        }
+        body_json = {"reportSpec": report_spec}
+        self.logger.info(f"stream slice date {stream_slice['startDate']} - {stream_slice['endDate']}")
         return body_json
     
     def get_json_schema(self) -> Mapping[str, Any]:
@@ -127,7 +127,8 @@ class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
 
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice = []
-        today: datetime.date = datetime.date.today()
+        # today = pendulum.today("Asia/Ho_Chi_Minh")
+        today = pendulum.today()
         start_date: datetime.date = self.state[self.cursor_field]
 
         slice.append({
