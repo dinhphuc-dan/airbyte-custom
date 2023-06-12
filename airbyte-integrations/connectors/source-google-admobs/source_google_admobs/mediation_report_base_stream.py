@@ -172,11 +172,14 @@ class MediationReport(MediationReportBase,IncrementalMixin):
         slice = []
         # today: datetime.date = datetime.date.today()
         # today = pendulum.today("Asia/Ho_Chi_Minh")
-        today = pendulum.today()
+        if self.config.get('time_zone'):
+            today = pendulum.today(self.config['time_zone'])
+        else:
+            today = pendulum.today()
         number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
         start_date: datetime.date = self.state[self.cursor_field] - datetime.timedelta(days=number_days_backward)
 
-        while start_date < today:
+        while start_date <= today:
             end_date: datetime.date = start_date 
             slice.append(
                 {

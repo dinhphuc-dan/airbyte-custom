@@ -88,6 +88,11 @@ connectionSpecification:
       type: string
       order: 8
       description: Due to Admob adjust data in the past, usually after 7 days it will stop changing so default is 7 days
+    time_zone:
+      title: Your local timezone
+      type: string
+      order: 9
+      description: Default is UTC, get timezone name in https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 advanced_auth:
   auth_flow_type: oauth2.0
   predicate_key:
