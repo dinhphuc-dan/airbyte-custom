@@ -3,6 +3,7 @@ from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
 import requests
 import datetime
 import json
+import pendulum
 
 from airbyte_cdk.sources.streams import IncrementalMixin
 from airbyte_cdk.models import SyncMode
@@ -108,6 +109,11 @@ class AppleSearchAdsAdGroupStream(AppleSearchAdsAdGroupBaseStream, IncrementalMi
             # self.logger.info(f"Cursor Getter with ELSE {self._cursor_value}")
             return {self.cursor_field: utils.string_to_date(self.config["start_date"])}
     
+    @state.setter
+    def state(self, value: Mapping[str, Any]):
+        self._cursor_value = utils.string_to_date(value[self.cursor_field]) + datetime.timedelta(days=1)
+        self.logger.info(f"Cursor Setter {self._cursor_value}")
+    
     def get_json_schema(self) -> Mapping[str, Any]:
         full_schema = {
             "$schema": "http://json-schema.org/draft-07/schema#",
@@ -145,17 +151,15 @@ class AppleSearchAdsAdGroupStream(AppleSearchAdsAdGroupBaseStream, IncrementalMi
             }
         }
         return full_schema
-
-    @state.setter
-    def state(self, value: Mapping[str, Any]):
-        self._cursor_value = utils.string_to_date(value[self.cursor_field]) + datetime.timedelta(days=1)
-        self.logger.info(f"Cursor Setter {self._cursor_value}")
     
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice = []
-        today: datetime.date = datetime.date.today()
+        # today: datetime.date = datetime.date.today()
+        if self.config.get('time_zone'):
+            today = pendulum.today(self.config['time_zone'])
+        else:
+            today = pendulum.today()
         number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
-        # test_day: datetime.date = datetime.date.today() - datetime.timedelta(days=number_days_backward) + datetime.timedelta(days=1)
         start_date: datetime.date = self.state[self.cursor_field] - datetime.timedelta(days=number_days_backward)
         # self.logger.info(f"self._list_campaign items {self._list_campaign.items()}")
         
