@@ -201,9 +201,9 @@ class NetworkReport(NetworkReportBase,IncrementalMixin):
         # today: datetime.date = datetime.date.today()
         if self.config.get('time_zone'):
         
-            today = pendulum.today(self.config['time_zone'])
+            today = pendulum.today(self.config['time_zone']).date()
         else:
-            today = pendulum.today()
+            today = pendulum.today().date()
         number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
         yesterday: datetime.date = datetime.date.today() - datetime.timedelta(days=1)
         start_date: datetime.date = self.state[self.cursor_field] - datetime.timedelta(days=number_days_backward)

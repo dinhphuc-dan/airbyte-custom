@@ -128,9 +128,9 @@ class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice = []
         if self.config.get('time_zone'):
-            today = pendulum.today(self.config['time_zone'])
+            today = pendulum.today(self.config['time_zone']).date()
         else:
-            today = pendulum.today()
+            today = pendulum.today().date()
         start_date: datetime.date = self.state[self.cursor_field]
 
         slice.append({
