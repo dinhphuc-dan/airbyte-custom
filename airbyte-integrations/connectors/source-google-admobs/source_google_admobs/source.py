@@ -40,7 +40,7 @@ class SourceGoogleAdmobs(AbstractSource):
         list_app_stream = AListApps(authenticator=auth, config=config)
         list_app_records = list_app_stream.read_records(sync_mode="full_refresh")
 
-        for record in list_app_records:
+        for record in filter(None,list_app_records):
             list_app_name_to_id_dict.update({record.get("app_id"): record.get("app_name")})
         return list_app_name_to_id_dict
 
