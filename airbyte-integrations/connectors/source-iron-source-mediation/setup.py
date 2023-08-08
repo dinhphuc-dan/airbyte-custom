@@ -7,6 +7,7 @@ from setuptools import find_packages, setup
 
 MAIN_REQUIREMENTS = [
     "airbyte-cdk==0.47.0",
+    "pydantic ==1.9.*"
 ]
 
 TEST_REQUIREMENTS = [

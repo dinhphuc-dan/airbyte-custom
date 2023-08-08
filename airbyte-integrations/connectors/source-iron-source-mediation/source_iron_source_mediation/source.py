@@ -4,203 +4,236 @@
 
 
 from abc import ABC
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
+from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple, Union
+from airbyte_cdk.sources.streams.http.auth.core import HttpAuthenticator
 
 import requests
 from airbyte_cdk.sources import AbstractSource
-from airbyte_cdk.sources.streams import Stream
+from airbyte_cdk.sources.streams import Stream, IncrementalMixin
 from airbyte_cdk.sources.streams.http import HttpStream
-from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator
+from airbyte_cdk.models import SyncMode
+from source_iron_source_mediation.authenticator import IronSourceMediationAuthenticator
+import pendulum
+import datetime
 
-"""
-TODO: Most comments in this class are instructive and should be deleted after the source is implemented.
-
-This file provides a stubbed example of how to use the Airbyte CDK to develop both a source connector which supports full refresh or and an
-incremental syncs from an HTTP API.
-
-The various TODOs are both implementation hints and steps - fulfilling all the TODOs should be sufficient to implement one basic and one incremental
-stream from a source. This pattern is the same one used by Airbyte internally to implement connectors.
-
-The approach here is not authoritative, and devs are free to use their own judgement.
-
-There are additional required TODOs in the files within the integration_tests folder and the spec.yaml file.
-"""
-
-
-# Basic full refresh stream
+# Base stream
 class IronSourceMediationStream(HttpStream, ABC):
-    """
-    TODO remove this comment
+    url_base = "https://platform.ironsrc.com/partners/publisher/mediation/applications/v6/stats?"
 
-    This class represents a stream output by the connector.
-    This is an abstract base class meant to contain all the common functionality at the API level e.g: the API base URL, pagination strategy,
-    parsing responses etc..
-
-    Each stream should extend this class (or another abstract subclass of it) to specify behavior unique to that stream.
-
-    Typically for REST APIs each stream corresponds to a resource in the API. For example if the API
-    contains the endpoints
-        - GET v1/customers
-        - GET v1/employees
-
-    then you should have three classes:
-    `class IronSourceMediationStream(HttpStream, ABC)` which is the current class
-    `class Customers(IronSourceMediationStream)` contains behavior to pull data for customers using v1/customers
-    `class Employees(IronSourceMediationStream)` contains behavior to pull data for employees using v1/employees
-
-    If some streams implement incremental sync, it is typical to create another class
-    `class IncrementalIronSourceMediationStream((IronSourceMediationStream), ABC)` then have concrete stream implementations extend it. An example
-    is provided below.
-
-    See the reference docs for the full list of configurable options.
-    """
-
-    # TODO: Fill in the url base. Required.
-    url_base = "https://example-api.com/v1/"
+    def __init__(self, config: Mapping[str, Any], *args ,**kwargs):
+        super().__init__(*args, **kwargs)
+        self.config = config
+    
+    def path(
+        self ,stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
+    ) -> str:
+        return None
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
-        """
-        TODO: Override this method to define a pagination strategy. If you will not be using pagination, no action is required - just return None.
-
-        This method should return a Mapping (e.g: dict) containing whatever information required to make paginated requests. This dict is passed
-        to most other methods in this class to help you form headers, request bodies, query params, etc..
-
-        For example, if the API accepts a 'page' parameter to determine which page of the result to return, and a response from the API contains a
-        'page' number, then this method should probably return a dict {'page': response.json()['page'] + 1} to increment the page count by 1.
-        The request_params method should then read the input next_page_token and set the 'page' param to next_page_token['page'].
-
-        :param response: the most recent response from the API
-        :return If there is another page in the result, a mapping (e.g: dict) containing information needed to query the next page in the response.
-                If there are no more pages in the result, return None.
-        """
         return None
 
     def request_params(
-        self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
+        self, 
+        stream_state: Mapping[str, Any], 
+        stream_slice: Mapping[str, any] = None, 
+        next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
-        """
-        TODO: Override this method to define any query parameters to be set. Remove this method if you don't need to define request params.
-        Usually contains common params e.g. pagination size etc.
-        """
         return {}
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        """
-        TODO: Override this method to define how a response is parsed.
-        :return an iterable containing each record in the response
-        """
         yield {}
 
+class IronSourceMediationCheckConnnectionStream(IronSourceMediationStream):
+    primary_key = None
 
-class Customers(IronSourceMediationStream):
-    """
-    TODO: Change class name to match the table/data source this stream corresponds to.
-    """
+    def request_params(
+        self,
+        stream_state: Mapping[str, Any],
+        stream_slice: Mapping[str, Any] = None,
+        next_page_token: Mapping[str, Any] = None,
+    ) -> MutableMapping[str, Any]:
+        start_date :str = pendulum.today().subtract(days=1).to_date_string()
+        end_date :str = pendulum.today().to_date_string()
+        params = {
+            "startDate": start_date,
+            "endDate": end_date,
+            "metrics": 'revenue'
+        }
+        return params
 
-    # TODO: Fill in the primary key. Required. This is usually a unique field in the stream, like an ID or a timestamp.
-    primary_key = "customer_id"
-
-    def path(
-        self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
-    ) -> str:
-        """
-        TODO: Override this method to define the path this stream corresponds to. E.g. if the url is https://example-api.com/v1/customers then this
-        should return "customers". Required.
-        """
-        return "customers"
-
-
-# Basic incremental stream
-class IncrementalIronSourceMediationStream(IronSourceMediationStream, ABC):
-    """
-    TODO fill in details of this class to implement functionality related to incremental syncs for your connector.
-         if you do not need to implement incremental sync for any streams, remove this class.
-    """
-
-    # TODO: Fill in to checkpoint stream reads after N records. This prevents re-reading of data if the stream fails for any reason.
-    state_checkpoint_interval = None
+    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+        response_json = response.json()
+        yield response_json
+    
+class IronSourceMediationAdSourceReport(IronSourceMediationStream, IncrementalMixin):
+    primary_key = None
+    number_days_backward_default = 7
+    _record_date_format = "YYYY-MM-DD"
+    _cursor_value: datetime = None
 
     @property
-    def cursor_field(self) -> str:
-        """
-        TODO
-        Override to return the cursor field used by this stream e.g: an API entity might always use created_at as the cursor field. This is
-        usually id or date based. This field's presence tells the framework this in an incremental stream. Required for incremental.
+    def name(self) -> str:
+        """Override method to get stream name """
+        stream_name = 'Ad_Source_Report'
+        return stream_name
 
-        :return str: The name of the cursor field.
-        """
-        return []
+    @property
+    def cursor_field(self) -> Union[str, List[str]]:
+        return "date"
+    
+    @property
+    def state(self) -> Mapping[str, Any]:
+        '''airbyte always starts syncing by checking stream availability, then sets cursor value as your logic at read_records() fucntion''' 
+        # self.logger.info(f"Cursor Getter {self._cursor_value}")
+        return {self.cursor_field: self._cursor_value}
+    
+    @state.setter
+    def state(self, value: Mapping[str, Any]):
+        # self.logger.info(f"Cursor Setter Value {value}")
+        self._cursor_value: datetime.date = pendulum.from_format(value[self.cursor_field], self._record_date_format).add(days=1).date()
+        self.logger.info(f"Cursor Setter {self._cursor_value}")
 
-    def get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]) -> Mapping[str, Any]:
-        """
-        Override to determine the latest state after reading the latest record. This typically compared the cursor_field from the latest record and
-        the current state and picks the 'most' recent cursor. This is how a stream's state is determined. Required for incremental.
-        """
-        return {}
-
-
-class Employees(IncrementalIronSourceMediationStream):
-    """
-    TODO: Change class name to match the table/data source this stream corresponds to.
-    """
-
-    # TODO: Fill in the cursor_field. Required.
-    cursor_field = "start_date"
-
-    # TODO: Fill in the primary key. Required. This is usually a unique field in the stream, like an ID or a timestamp.
-    primary_key = "employee_id"
-
-    def path(self, **kwargs) -> str:
-        """
-        TODO: Override this method to define the path this stream corresponds to. E.g. if the url is https://example-api.com/v1/employees then this should
-        return "single". Required.
-        """
-        return "employees"
+    def get_json_schema(self) -> Mapping[str, Any]:
+        full_schema = {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "object",
+            "required": [],
+            "properties": {
+                "date": {"type": ["null", "string"]},
+                "appKey": {"type": ["null", "string"]},
+                "platform": {"type": ["null", "string"]},
+                "adUnits": {"type": ["null", "string"]},
+                "instanceName": {"type": ["null", "string"]},
+                "instanceId": {"type": ["null", "string"]},
+                "bundleId": {"type": ["null", "string"]},
+                "appName": {"type": ["null", "string"]},
+                "providerName": {"type": ["null", "string"]},
+                "countryCode": {"type": ["null", "string"]},
+                "revenue": {"type": ["null", "number"]},
+                "adSourceChecks": {"type": ["null", "number"]},
+                "adSourceResponses": {"type": ["null", "number"]},
+                "impressions": {"type": ["null", "number"]},
+                "clicks": {"type": ["null", "number"]},
+                "videoCompletions": {"type": ["null", "number"]},
+                "activeUsers": {"type": ["null", "number"]},
+                "engagedUsers": {"type": ["null", "number"]},
+                "engagedSessions": {"type": ["null", "number"]},
+            }
+        }
+        return full_schema
 
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
-        """
-        TODO: Optionally override this method to define this stream's slices. If slicing is not needed, delete this method.
+        slice: list = []
+        
+        number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
+        if stream_state:
+            ''' this code for incremental run, the stream will start with the last date of record minus number_days_backward'''
+            start_date: datetime.date = self.state[self.cursor_field].subtract(days=number_days_backward)
+            # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+            start_date_as_str: str = start_date.to_date_string()
+            today_as_string: str = pendulum.today().to_date_string()
+            slice.append({
+                "startDate": start_date_as_str,
+                "endDate": today_as_string
+                }
+            )
 
-        Slices control when state is saved. Specifically, state is saved after a slice has been fully read.
-        This is useful if the API offers reads by groups or filters, and can be paired with the state object to make reads efficient. See the "concepts"
-        section of the docs for more information.
+        elif self._cursor_value: 
+            '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''
+            start_date: datetime.date = pendulum.from_format(self.config["start_date"], self._record_date_format).date()
+            # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
 
-        The function is called before reading any records in a stream. It returns an Iterable of dicts, each containing the
-        necessary data to craft a request for a slice. The stream state is usually referenced to determine what slices need to be created.
-        This means that data in a slice is usually closely related to a stream's cursor_field and stream_state.
+            while start_date <= pendulum.today().date():
+                start_date_as_str: str = start_date.to_date_string()
+                if start_date.month == pendulum.today().month:
+                    today_as_string: str = pendulum.today().to_date_string()
+                    slice.append({
+                        "startDate": start_date_as_str,
+                        "endDate": today_as_string
+                        }
+                    )
+                else:
+                    end_date_as_str: str = start_date.end_of('month').to_date_string()
+                    slice.append({
+                        "startDate": start_date_as_str,
+                        "endDate": end_date_as_str
+                        }
+                    )
+                start_date: datetime.date = start_date.add(months=1).start_of('month')
 
-        An HTTP request is made for each returned slice. The same slice can be accessed in the path, request_params and request_header functions to help
-        craft that specific request.
+        else:
+            ''' this code for airbyte to checking stream availability. It will be run first then starting sync. In order to make this procees shorter, start date is yesteray and end date is today'''  
+            start_date:datetime.date = pendulum.today().subtract(days=1).date()
+            # self.logger.info(f"stream slice start date in ELSE {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+            start_date_as_str: str = start_date.to_date_string()
+            today_as_string: str = pendulum.today().to_date_string()
+            slice.append({
+                "startDate": start_date_as_str,
+                "endDate": today_as_string
+                }
+            )
 
-        For example, if https://example-api.com/v1/employees offers a date query params that returns data for that particular day, one way to implement
-        this would be to consult the stream state object for the last synced date, then return a slice containing each date from the last synced date
-        till now. The request_params function would then grab the date from the stream_slice and make it part of the request by injecting it into
-        the date query param.
-        """
-        raise NotImplementedError("Implement stream slices or delete this method!")
+        # self.logger.info(f"stream slice {slice}")
+        return slice or [None]
 
+    def request_params(
+        self,
+        stream_state: Mapping[str, Any],
+        stream_slice: Mapping[str, Any] = None,
+        next_page_token: Mapping[str, Any] = None,
+    ) -> MutableMapping[str, Any]:
+        param = {
+            "breakdowns": 'date,app,platform,adSource,adUnits,instance,country',
+            "metrics": 'revenue,adSourceChecks,adSourceResponses,impressions,clicks,completions,activeUsers,engagedUsers,engagedSessions',
+        }
+        self.logger.info(f"Slice in params {stream_slice}")
+        param.update(stream_slice)
+        return param
 
+    def read_records(
+        self,
+        sync_mode: SyncMode,
+        cursor_field: List[str] = None,
+        stream_slice: Mapping[str, Any] = None,
+        stream_state: Mapping[str, Any] = None,
+    ) -> Iterable[Mapping[str, Any]]:
+        if not stream_slice:
+            return []
+        records = super().read_records(sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state)
+        for record in records:
+            record_cursor_value: datetime.date = pendulum.from_format(record[self.cursor_field], self._record_date_format).date()
+            self._cursor_value: datetime.date = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
+            # self.logger.info(f"read record; record_cursor_value: {record_cursor_value} and self._cursor_value: {self._cursor_value} ")
+            yield record
+
+    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+        response_json = response.json()
+        record = {}
+        for row in response_json:
+            for k,v in row.items():
+                if k != 'data': 
+                    record.update({k: v})
+            for data in row['data']:
+                for key, value in data.items():
+                    record.update({key: value})
+            yield record
 # Source
 class SourceIronSourceMediation(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
-        """
-        TODO: Implement a connection check to validate that the user-provided config can be used to connect to the underlying API
-
-        See https://github.com/airbytehq/airbyte/blob/master/airbyte-integrations/connectors/source-stripe/source_stripe/source.py#L232
-        for an example.
-
-        :param config:  the user-input config object conforming to the connector's spec.yaml
-        :param logger:  logger object
-        :return Tuple[bool, any]: (True, None) if the input config can be used to connect to the API successfully, (False, error) otherwise.
-        """
-        return True, None
+        try:
+            auth = IronSourceMediationAuthenticator(config=config)
+            logger.info(f"load auth {auth}")
+            check_connection_steam = IronSourceMediationCheckConnnectionStream(authenticator = auth, config=config) 
+            logger.info(f"Successfully build {check_connection_steam}")
+            check_connection_records = check_connection_steam.read_records(sync_mode="full_refresh")
+            logger.info(f"Successfully read records {check_connection_records}")
+            record = next(check_connection_records)
+            logger.info(f"There is one of records: {record}")
+            return True, None
+        except Exception as e:
+            return False
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
-        """
-        TODO: Replace the streams below with your own streams.
-
-        :param config: A Mapping of the user input configuration as defined in the connector spec.
-        """
-        # TODO remove the authenticator if not required.
-        auth = TokenAuthenticator(token="api_key")  # Oauth2Authenticator is also available if you need oauth support
-        return [Customers(authenticator=auth), Employees(authenticator=auth)]
+        auth = IronSourceMediationAuthenticator(config=config)
+        stream = IronSourceMediationAdSourceReport(authenticator = auth, config=config)
+        return [stream]
