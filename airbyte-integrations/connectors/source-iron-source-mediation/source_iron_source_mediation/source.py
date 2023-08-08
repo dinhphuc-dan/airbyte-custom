@@ -104,7 +104,7 @@ class IronSourceMediationAdSourceReport(IronSourceMediationStream, IncrementalMi
                 "platform": {"type": ["null", "string"]},
                 "adUnits": {"type": ["null", "string"]},
                 "instanceName": {"type": ["null", "string"]},
-                "instanceId": {"type": ["null", "number"]},
+                "instanceId": {"type": ["null", "string"]},
                 "bundleId": {"type": ["null", "string"]},
                 "appName": {"type": ["null", "string"]},
                 "providerName": {"type": ["null", "string"]},
