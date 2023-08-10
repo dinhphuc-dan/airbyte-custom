@@ -216,7 +216,7 @@ class IronSourceMediationAdSourceReport(IronSourceMediationStream, IncrementalMi
             for data in row['data']:
                 for key, value in data.items():
                     record.update({key: value})
-            yield record
+                yield record
 # Source
 class SourceIronSourceMediation(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
