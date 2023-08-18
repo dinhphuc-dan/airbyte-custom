@@ -1,0 +1,25 @@
+data:
+  allowedHosts:
+    hosts:
+      - TODO # Please change to the hostname of the source.
+  registries:
+    oss:
+      enabled: false
+    cloud:
+      enabled: false
+  connectorSubtype: api
+  connectorType: source
+  definitionId: 68eb1217-f8e8-494b-9008-8923d66dd12c
+  dockerImageTag: 0.1.0
+  dockerRepository: airbyte/source-unity-ads-advertise
+  githubIssueLabel: source-unity-ads-advertise
+  icon: unity-ads-advertise.svg
+  license: MIT
+  name: Unity Ads Advertise
+  releaseDate: TODO
+  supportLevel: community
+  releaseStage: alpha
+  documentationUrl: https://docs.airbyte.com/integrations/sources/unity-ads-advertise
+  tags:
+    - language:python
+metadataSpecVersion: "1.0"
