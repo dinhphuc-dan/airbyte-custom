@@ -136,7 +136,7 @@ class AppleStoreSaleReportStream(AppleStoreSaleReportBaseStream, IncrementalMixi
         if self.config.get('time_zone'):
             yesterday = pendulum.yesterday(self.config['time_zone']).date()
         else:
-            today = pendulum.yesterday().date()
+            yesterday = pendulum.yesterday().date()
         number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
         start_date: datetime.date = self.state[self.cursor_field] - datetime.timedelta(days=number_days_backward)
         while start_date < yesterday:
