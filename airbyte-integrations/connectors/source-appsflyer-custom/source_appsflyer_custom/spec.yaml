@@ -1,0 +1,45 @@
+documentationUrl: https://docsurl.com
+connectionSpecification:
+  $schema: http://json-schema.org/draft-07/schema#
+  title: Appsflyer Custom Spec
+  type: object
+  required:
+    - api_key
+    - start_date
+    - chunk_date_range
+    - timezone
+  properties:
+    api_key:
+      title: API Key
+      type: string
+      order: 1
+      description: API Token v2.0 under Security Center tab. See <a href="https://support.appsflyer.com/hc/en-us/articles/360004562377-Managing-API-tokens">here</a>
+      airbyte_secret: True
+    start_date:
+      title: Start Date
+      type: string
+      order: 2
+      description: End Date will be today as default, and Number of Row per report per call get a maximum of 1,000,000 so please calculate your appropriate Start Date based on your Event Count in your Activity Dashboard beforehand
+      pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+      pattern_descriptor: "YYYY-MM-DD"
+      format: date
+    chunk_date_range:
+      title: Number of days per chunk per request to call API
+      type: integer
+      order: 3
+      description: Since Number of Row per report per call get a maximum of 1,000,000 rows, you should calculate average days per chunk which makes report rows <= 1,000,000 by using Event Count in your Activity Dashboard. Default is 10
+      minimum: 0
+      default: 10
+    timezone:
+      title: Timezone
+      type: string
+      order: 4
+      description: Timezone same as your AppsFlyer Setting Timezone. Default is UTC. See <a href="https://dev.appsflyer.com/hc/reference/get_app-id-ad-revenue-raw-v5">here</a>
+    number_days_backward:
+      title: For Incremental Run - Number of days backward to get data
+      type: integer
+      order: 5
+      description: Number of days backward to get data for daily incremental sync if historical raw data of AF change, default is 2. 
+      minimum: 1
+      default: 2
+    
