@@ -205,6 +205,10 @@ class IronSourceMediationAdSourceReport(IronSourceMediationStream, IncrementalMi
             self._cursor_value: datetime.date = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
             # self.logger.info(f"read record; record_cursor_value: {record_cursor_value} and self._cursor_value: {self._cursor_value} ")
             yield record
+        
+        # if there is no record backs, the cursor value will be None, so we update it as the start date in config
+        if self._cursor_value == None:
+                self._cursor_value: datetime.date = pendulum.parse((self.config["start_date"])).date()
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         response_json = response.json()
