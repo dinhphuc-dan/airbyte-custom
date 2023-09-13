@@ -6,7 +6,7 @@
 from setuptools import find_packages, setup
 
 MAIN_REQUIREMENTS = [
-    "airbyte-cdk",
+    "airbyte-cdk==0.51.1",
     "pydantic~=1.9.2",
     "jsonschema~=3.2.0",
     "jsonref~=0.2",
