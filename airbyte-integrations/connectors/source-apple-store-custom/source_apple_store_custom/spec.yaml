@@ -42,9 +42,11 @@ connectionSpecification:
       format: date
     number_days_backward:
       title: Number of days backward to get data
-      type: string
+      type: integer
       order: 6
       description: In case data from Apple change, default is 7 days
+      minimum: 1
+      default: 7
     time_zone:
       title: Your local timezone
       type: string

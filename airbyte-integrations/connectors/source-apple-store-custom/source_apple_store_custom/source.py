@@ -15,7 +15,6 @@ from airbyte_cdk.sources.streams import Stream, IncrementalMixin
 from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_cdk.models import SyncMode
 from source_apple_store_custom.authenticator import AppleStoreConnectAPIAuthenticator
-from source_apple_store_custom import utils
 
 
 # Basic full refresh stream
@@ -104,51 +103,53 @@ class AppleStoreSaleReportBaseStream(AppleStoreCustomStream):
 
 # Basic incremental stream
 class AppleStoreSaleReportStream(AppleStoreSaleReportBaseStream, IncrementalMixin):
-    number_days_backward_default = 7
-    _record_date_format = "%m/%d/%Y"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._cursor_value = None
+        self.number_days_backward = self.config.get("number_days_backward", 7)
+        self.timezone  = self.config.get("timezone", "UTC")
 
-    
     @property
     def cursor_field(self) -> Union[str, List[str]]:
         return "Begin_Date"
     
     @property
     def state(self) -> Mapping[str, Any]:
-        if self._cursor_value:
-            # self.logger.info(f"Cursor Getter with IF {self._cursor_value}")
-            return {self.cursor_field: self._cursor_value}
-        else:
-            # self.logger.info(f"Cursor Getter with ELSE {self._cursor_value}")
-            return {self.cursor_field: utils.string_to_date(self.config["start_date"])}
+        # self.logger.info(f"Cursor Getter {self._cursor_value}")
+        return {self.cursor_field: self._cursor_value}
+
 
     @state.setter
     def state(self, value: Mapping[str, Any]):
-        self._cursor_value = utils.string_to_date(value[self.cursor_field]) + datetime.timedelta(days=1)
+        self._cursor_value = pendulum.parse(value[self.cursor_field]).add(days=1).date()
         self.logger.info(f"Cursor Setter {self._cursor_value}")
     
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice = []
-        # yesterday: datetime.date = datetime.date.today() - datetime.timedelta(days=1)
+        #  get end_date = today with time zone in config
         if self.config.get('time_zone'):
             yesterday = pendulum.yesterday(self.config['time_zone']).date()
         else:
             yesterday = pendulum.yesterday().date()
-        number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
-        start_date: datetime.date = self.state[self.cursor_field] - datetime.timedelta(days=number_days_backward)
+        
+        if stream_state:
+            # print(f' stream slice, stream state in IF {stream_state}, {self._cursor_value}')
+            start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
+        else:
+            # print(f' stream slice, stream state in ELSE {stream_state}, {self._cursor_value}')
+            start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
+        
         while start_date < yesterday:
-            end_date: datetime.date = start_date 
+            start_date_as_str: str = start_date.to_date_string() 
             slice.append(
                 {
-                    'filter[reportDate]': utils.date_to_string(start_date),
+                    'filter[reportDate]': start_date_as_str,
                 }
             )
-            start_date: datetime.date = end_date + datetime.timedelta(days=1)
+            start_date: datetime.date = start_date.add(days=1) 
 
-        self.logger.info(f"stream slice {slice}")
+        # self.logger.info(f"stream slice {slice}")
         return slice or [None]
 
     def request_params(
@@ -161,7 +162,7 @@ class AppleStoreSaleReportStream(AppleStoreSaleReportBaseStream, IncrementalMixi
         request_params.update({"filter[vendorNumber]":self.vendor_number})
         request_params.update({"filter[version]":self.report_version})
         request_params.update(stream_slice)
-        self.logger.info(f"Sending slice date {stream_slice['filter[reportDate]']}")
+        self.logger.info(f"Slice in params {stream_slice}")
 
         return request_params
     
@@ -176,7 +177,7 @@ class AppleStoreSaleReportStream(AppleStoreSaleReportBaseStream, IncrementalMixi
             return []
         records = super().read_records(sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state)
         for record in records:
-            record_cursor_value = utils.string_to_date(record[self.cursor_field], self._record_date_format)
+            record_cursor_value = pendulum.from_format(record[self.cursor_field], "MM/DD/YYYY").date()
             self._cursor_value = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
             # self.logger.info(f"read record with ELSE, record_cursor_value: {record_cursor_value} and self._cursor_value: {self._cursor_value} ")
             yield record
@@ -216,7 +217,6 @@ class SourceAppleStoreCustom(AbstractSource):
             logger.info(f"Successfully build {check_connection_steam}")
             check_connection_records = check_connection_steam.read_records(sync_mode="full_refresh")
             logger.info(f"Successfully read records {check_connection_records}")
-            logger.info(f"Happend before next fuction OMGGGG")
             record = next(check_connection_records)
             logger.info(f"There is one of records: {record}")
             return True, None
