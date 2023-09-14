@@ -9,6 +9,7 @@ from airbyte_cdk.sources.streams.http.auth.core import HttpAuthenticator
 
 import requests
 from airbyte_cdk.sources import AbstractSource
+from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
 from airbyte_cdk.sources.streams import Stream, IncrementalMixin
 from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_cdk.models import SyncMode
@@ -23,6 +24,10 @@ class IronSourceMediationStream(HttpStream, ABC):
     def __init__(self, config: Mapping[str, Any], *args ,**kwargs):
         super().__init__(*args, **kwargs)
         self.config = config
+    
+    @property
+    def availability_strategy(self) -> Optional["AvailabilityStrategy"]:
+        return None
     
     def path(
         self ,stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
@@ -67,9 +72,12 @@ class IronSourceMediationCheckConnnectionStream(IronSourceMediationStream):
     
 class IronSourceMediationAdSourceReport(IronSourceMediationStream, IncrementalMixin):
     primary_key = None
-    number_days_backward_default = 7
-    _record_date_format = "YYYY-MM-DD"
-    _cursor_value: datetime = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._cursor_value = None
+        self.number_days_backward = self.config.get("number_days_backward", 7)
+        self.timezone  = self.config.get("timezone", "UTC")
 
     @property
     def name(self) -> str:
@@ -83,14 +91,12 @@ class IronSourceMediationAdSourceReport(IronSourceMediationStream, IncrementalMi
     
     @property
     def state(self) -> Mapping[str, Any]:
-        '''airbyte always starts syncing by checking stream availability, then sets cursor value as your logic at read_records() fucntion''' 
         # self.logger.info(f"Cursor Getter {self._cursor_value}")
         return {self.cursor_field: self._cursor_value}
     
     @state.setter
     def state(self, value: Mapping[str, Any]):
-        # self.logger.info(f"Cursor Setter Value {value}")
-        self._cursor_value: datetime.date = pendulum.from_format(value[self.cursor_field], self._record_date_format).add(days=1).date()
+        self._cursor_value = pendulum.parse(value[self.cursor_field]).add(days=1).date()
         self.logger.info(f"Cursor Setter {self._cursor_value}")
 
     def get_json_schema(self) -> Mapping[str, Any]:
@@ -125,53 +131,36 @@ class IronSourceMediationAdSourceReport(IronSourceMediationStream, IncrementalMi
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice: list = []
         
-        number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
+        # data_available_date is the date that the newest data can be accessed
+        data_avaliable_date : datetime.date = pendulum.today(self.timezone).date() 
+
         if stream_state:
             ''' this code for incremental run, the stream will start with the last date of record minus number_days_backward'''
-            start_date: datetime.date = self.state[self.cursor_field].subtract(days=number_days_backward)
+            start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
             # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
-            start_date_as_str: str = start_date.to_date_string()
-            today_as_string: str = pendulum.today().to_date_string()
-            slice.append({
-                "startDate": start_date_as_str,
-                "endDate": today_as_string
-                }
-            )
 
-        elif self._cursor_value: 
+        else: 
             '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''
-            start_date: datetime.date = pendulum.from_format(self.config["start_date"], self._record_date_format).date()
+            start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
             # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
 
-            while start_date <= pendulum.today().date():
-                start_date_as_str: str = start_date.to_date_string()
-                if start_date.month == pendulum.today().month:
-                    today_as_string: str = pendulum.today().to_date_string()
-                    slice.append({
-                        "startDate": start_date_as_str,
-                        "endDate": today_as_string
-                        }
-                    )
-                else:
-                    end_date_as_str: str = start_date.end_of('month').to_date_string()
-                    slice.append({
-                        "startDate": start_date_as_str,
-                        "endDate": end_date_as_str
-                        }
-                    )
-                start_date: datetime.date = start_date.add(months=1).start_of('month')
-
-        else:
-            ''' this code for airbyte to checking stream availability. It will be run first then starting sync. In order to make this procees shorter, start date is yesteray and end date is today'''  
-            start_date:datetime.date = pendulum.today().subtract(days=1).date()
-            # self.logger.info(f"stream slice start date in ELSE {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+        while start_date <= data_avaliable_date:
             start_date_as_str: str = start_date.to_date_string()
-            today_as_string: str = pendulum.today().to_date_string()
-            slice.append({
-                "startDate": start_date_as_str,
-                "endDate": today_as_string
-                }
-            )
+            if start_date.month == data_avaliable_date.month:
+                end_date_as_str: str = data_avaliable_date.to_date_string()
+                slice.append({
+                    "startDate": start_date_as_str,
+                    "endDate": end_date_as_str
+                    }
+                )
+            else:
+                end_date_as_str: str = start_date.end_of('month').to_date_string()
+                slice.append({
+                    "startDate": start_date_as_str,
+                    "endDate": end_date_as_str
+                    }
+                )
+            start_date: datetime.date = start_date.add(months=1).start_of('month')
 
         # self.logger.info(f"stream slice {slice}")
         return slice or [None]
@@ -201,14 +190,11 @@ class IronSourceMediationAdSourceReport(IronSourceMediationStream, IncrementalMi
             return []
         records = super().read_records(sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state)
         for record in records:
-            record_cursor_value: datetime.date = pendulum.from_format(record[self.cursor_field], self._record_date_format).date()
+            record_cursor_value: datetime.date = pendulum.parse(record[self.cursor_field]).date()
             self._cursor_value: datetime.date = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
             # self.logger.info(f"read record; record_cursor_value: {record_cursor_value} and self._cursor_value: {self._cursor_value} ")
             yield record
         
-        # if there is no record backs, the cursor value will be None, so we update it as the start date in config
-        if self._cursor_value == None:
-                self._cursor_value: datetime.date = pendulum.parse((self.config["start_date"])).date()
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         response_json = response.json()
