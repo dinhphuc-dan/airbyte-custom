@@ -6,6 +6,7 @@ import json
 import pendulum
 
 from airbyte_cdk.sources import AbstractSource
+from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
 from airbyte_cdk.sources.streams import IncrementalMixin
 from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_cdk.models import SyncMode
@@ -18,6 +19,10 @@ class AppleSearchAdsCustomStream(HttpStream, ABC):
     def __init__(self,config: Mapping[str, Any], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config = config
+    
+    @property
+    def availability_strategy(self) -> Optional["AvailabilityStrategy"]:
+        return None
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         return None
