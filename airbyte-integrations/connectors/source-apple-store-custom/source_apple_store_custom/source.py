@@ -11,6 +11,7 @@ import datetime
 import pendulum
 
 from airbyte_cdk.sources import AbstractSource
+from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
 from airbyte_cdk.sources.streams import Stream, IncrementalMixin
 from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_cdk.models import SyncMode
@@ -24,6 +25,10 @@ class AppleStoreCustomStream(HttpStream, ABC):
     def __init__(self,config: Mapping[str, Any], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config = config
+
+    @property
+    def availability_strategy(self) -> Optional["AvailabilityStrategy"]:
+        return None
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         return None
@@ -127,11 +132,9 @@ class AppleStoreSaleReportStream(AppleStoreSaleReportBaseStream, IncrementalMixi
     
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice = []
-        #  get end_date = today with time zone in config
-        if self.config.get('time_zone'):
-            yesterday = pendulum.yesterday(self.config['time_zone']).date()
-        else:
-            yesterday = pendulum.yesterday().date()
+
+        # data_available_date is the date that the newest data can be accessed
+        data_avaliable_date : datetime.date = pendulum.yesterday(self.timezone).date()
         
         if stream_state:
             # print(f' stream slice, stream state in IF {stream_state}, {self._cursor_value}')
@@ -140,7 +143,7 @@ class AppleStoreSaleReportStream(AppleStoreSaleReportBaseStream, IncrementalMixi
             # print(f' stream slice, stream state in ELSE {stream_state}, {self._cursor_value}')
             start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
         
-        while start_date < yesterday:
+        while start_date < data_avaliable_date:
             start_date_as_str: str = start_date.to_date_string() 
             slice.append(
                 {
