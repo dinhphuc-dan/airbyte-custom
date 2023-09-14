@@ -218,12 +218,9 @@ class AppleSearchAdsCampaignStream(AppleSearchAdsCampaignBaseStream, Incremental
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice = []
 
-        # get end_date = today with time zone in config
-        if self.config.get('time_zone'):
-            today = pendulum.today(self.config['time_zone']).date()
-        else:
-            today = pendulum.today().date()
-        
+        # data_available_date is the date that the newest data can be accessed
+        data_avaliable_date : datetime.date = pendulum.today(self.timezone).date()
+
         # if stream has stream_state which means it has been run before, so start_date will be subtract X days backwards from last time run
         if stream_state:
             # print(f' stream slice, stream state in IF {stream_state}, {self._cursor_value}')
@@ -232,10 +229,10 @@ class AppleSearchAdsCampaignStream(AppleSearchAdsCampaignBaseStream, Incremental
             # print(f' stream slice, stream state in ELSE {stream_state}, {self._cursor_value}')
             start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
 
-        while start_date <= today:
+        while start_date <= data_avaliable_date:
             start_date_as_str: str = start_date.to_date_string()
-            if start_date.month == today.month:
-                end_date_as_str: str = today.to_date_string()
+            if start_date.month == data_avaliable_date.month:
+                end_date_as_str: str = data_avaliable_date.to_date_string()
                 slice.append(
                     {
                         'startTime': start_date_as_str,
