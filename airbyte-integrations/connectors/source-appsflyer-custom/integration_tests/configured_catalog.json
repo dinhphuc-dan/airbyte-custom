@@ -2,7 +2,7 @@
   "streams": [
     {
       "stream": {
-        "name": "id6450525193_AdRevenueRawOrganic",
+        "name": "id6450525193_IAPRawOrganic",
         "json_schema": {},
         "supported_sync_modes": ["full_refresh", "incremental"]
       },

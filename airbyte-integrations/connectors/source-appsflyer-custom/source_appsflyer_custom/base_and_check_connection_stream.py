@@ -6,6 +6,7 @@ from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream, IncrementalMixin
 from airbyte_cdk.sources.streams.http import HttpStream
 from airbyte_cdk.models import SyncMode
+from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
 from airbyte_cdk.sources.streams.http.requests_native_auth import TokenAuthenticator
 import pendulum
 
@@ -21,6 +22,10 @@ class AppsflyerCustomStream(HttpStream, ABC):
     def http_method(self) -> str:
        """ Override if needed. Default by airbyte is GET """
        return "GET"
+
+    @property
+    def availability_strategy(self) -> Optional["AvailabilityStrategy"]:
+        return None
     
     def path(
         self ,stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None

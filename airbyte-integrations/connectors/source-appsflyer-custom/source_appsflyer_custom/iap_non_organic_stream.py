@@ -65,57 +65,39 @@ class AppsFlyerIAPRawNonOrganic(AppsflyerCustomStream, IncrementalMixin):
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice: list = []
         
+        # data_available_date is the date that the newest data can be accessed
+        data_avaliable_date : date = pendulum.today(self.timezone).subtract(days=2).date()
+
         if stream_state:
             ''' this code for incremental run, the stream will start with the last date of record minus number_days_backward'''
             start_date: date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
             # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
-            start_date_as_str: str = start_date.to_date_string()
-            end_date_as_str: str = pendulum.today(tz=self.timezone).subtract(days=2).date().to_date_string()
-            slice.append({
-                "from": start_date_as_str,
-                "to": end_date_as_str,
-                "maximum_rows": 1000000,
-                }
-            )
-
-        elif self._cursor_value: 
+        else:
             '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''
             start_date: date = pendulum.parse(self.config["start_date"]).date()
             # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
 
-            while start_date <= pendulum.today().subtract(days=2).date():
-                start_date_as_str: str = start_date.to_date_string()
-                if (pendulum.today().subtract(days=2).date() - start_date).days >= self.chunk_date_range:
-                    end_date: date = start_date.add(days=self.chunk_date_range)
-                    end_date_as_str: str = end_date.to_date_string()
-                    slice.append({
-                        "from": start_date_as_str,
-                        "to": end_date_as_str,
-                        "maximum_rows": 1000000,
-                        }
-                    )
-                else:
-                    end_date: date = pendulum.today().subtract(days=2).date()
-                    end_date_as_str: str = end_date.to_date_string()
-                    slice.append({
-                        "from": start_date_as_str,
-                        "to": end_date_as_str,
-                        "maximum_rows": 1000000,
-                        }
-                    )
-                start_date: date = end_date.add(days=1)
-
-        else:
-            ''' this code for airbyte to checking stream availability. It will be run first then starting sync. In order to make this procees shorter, start date and end date is yesterday, and maximum_rows is 100'''  
-            start_date: date = pendulum.today().subtract(days=2).date()
-            # self.logger.info(f"stream slice start date in ELSE {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+        while start_date <= data_avaliable_date:
             start_date_as_str: str = start_date.to_date_string()
-            slice.append({
-                "from": start_date_as_str,
-                "to": start_date_as_str,
-                "maximum_rows": 100,
-                }
-            )
+            if (data_avaliable_date - start_date).days >= self.chunk_date_range:
+                end_date: date = start_date.add(days=self.chunk_date_range)
+                end_date_as_str: str = end_date.to_date_string()
+                slice.append({
+                    "from": start_date_as_str,
+                    "to": end_date_as_str,
+                    "maximum_rows": 1000000,
+                    }
+                )
+            else:
+                end_date: date = data_avaliable_date
+                end_date_as_str: str = end_date.to_date_string()
+                slice.append({
+                    "from": start_date_as_str,
+                    "to": end_date_as_str,
+                    "maximum_rows": 1000000,
+                    }
+                )
+            start_date: date = end_date.add(days=1)
 
         return slice or [None]
 
