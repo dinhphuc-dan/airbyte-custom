@@ -10,11 +10,10 @@ from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
 
 import requests
 from airbyte_cdk.sources import AbstractSource
+from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
 from airbyte_cdk.sources.streams import Stream, IncrementalMixin
 from airbyte_cdk.sources.streams.http import HttpStream
-from airbyte_cdk.sources.streams.http.auth import NoAuth
 from airbyte_cdk.models import SyncMode
-from source_applovin_max import utils
 
 
 ''' Base Stream '''
@@ -28,6 +27,10 @@ class ApplovinMaxStream(HttpStream, ABC):
     def __init__(self,config: Mapping[str, Any], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config = config
+    
+    @property
+    def availability_strategy(self) -> Optional["AvailabilityStrategy"]:
+        return None
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         return None
@@ -39,15 +42,16 @@ class ApplovinMaxStream(HttpStream, ABC):
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         yield {}
-
-''' Check connection Stream'''
-class ApplovinMaxCheckConnection(ApplovinMaxStream):
-    primary_key = None
-
+    
     def path(
         self ,stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
     ) -> str:
         return None
+
+
+''' Check connection Stream'''
+class ApplovinMaxCheckConnection(ApplovinMaxStream):
+    primary_key = None
 
     def request_params(
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
@@ -73,24 +77,108 @@ class ApplovinMaxCheckConnection(ApplovinMaxStream):
         ''' use when to check raw response from API'''
         # yield response_json
 
-''' Base stream'''
-class ApplovinMaxReportBase(ApplovinMaxStream):
+''' Incremental Stream '''
+class ApplovinMaxFullReport(ApplovinMaxStream,IncrementalMixin):
     primary_key = None
 
     def __init__(self, **kwargs):
-        """override __init__ to add package name"""
         super().__init__(**kwargs)
         self._cursor_value = None
-    
+        self.number_days_backward = self.config.get("number_days_backward", 7)
+        self.timezone  = self.config.get("timezone", "UTC")
+
     @property
     def name(self) -> str:
         """Override method to get stream name according to each package name """
         stream_name = "Full_Report"
         return stream_name
+    
+    @property
+    def cursor_field(self) -> Union[str, List[str]]:
+        return "day"
+    
+    @property
+    def state(self) -> Mapping[str, Any]:
+        # self.logger.info(f"Cursor Getter {self._cursor_value}")
+        return {self.cursor_field: self._cursor_value}
 
-    def path(self, **kwargs) -> str:
-        return None
+    @state.setter
+    def state(self, value: Mapping[str, Any]):
+        self._cursor_value = pendulum.parse(value[self.cursor_field]).add(days=1).date()
+        self.logger.info(f"Cursor Setter {self._cursor_value}")
+    
+    def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
+        slice = []
+        
+        # data_available_date is the date that the newest data can be accessed
+        data_avaliable_date : datetime.date = pendulum.today(self.timezone).date()
 
+        if stream_state:
+            ''' this code for incremental run, the stream will start with the last date of record minus number_days_backward'''
+            start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
+            # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+
+        else: 
+            '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''
+            start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
+            # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+
+        while start_date <= data_avaliable_date:
+            start_date_as_str: str = start_date.to_date_string()
+            if start_date.month == data_avaliable_date.month:
+                end_date_as_str: str = data_avaliable_date.to_date_string()
+                slice.append({
+                    "start": start_date_as_str,
+                    "end": end_date_as_str
+                    }
+                )
+            else:
+                end_date_as_str: str = start_date.end_of('month').to_date_string()
+                slice.append({
+                    "start": start_date_as_str,
+                    "end": end_date_as_str
+                    }
+                )
+            start_date: datetime.date = start_date.add(months=1).start_of('month')
+
+        # self.logger.info(f"stream slice {slice}")
+        return slice or [None]
+
+    def request_params(
+        self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
+    ) -> MutableMapping[str, Any]:
+        request_params = {}
+        request_params.update(stream_slice)
+        request_params.update({"api_key":self.config["api_key"]})
+        request_params.update({"format":"json"})
+        # request_params.update({"filter_package_name":self.package_name})
+        # request_params.update({"columns":"day,package_name,application,estimated_revenue"})
+        request_params.update({"columns":"day,package_name,platform,application,ad_format,ad_unit_waterfall_name,country,custom_network_name,device_type,has_idfa,max_ad_unit,max_ad_unit_id,max_ad_unit_test,network,network_placement,attempts,responses,impressions,estimated_revenue"})
+        self.logger.info(f" stream slice date {stream_slice}")
+        return request_params
+    
+    def read_records(
+        self,
+        sync_mode: SyncMode,
+        cursor_field: List[str] = None,
+        stream_slice: Mapping[str, Any] = None,
+        stream_state: Mapping[str, Any] = None,
+    ) -> Iterable[Mapping[str, Any]]:
+        if not stream_slice:
+            return []
+        records = super().read_records(sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state)
+        for record in records:
+            record_cursor_value = pendulum.parse(record[self.cursor_field]).date()
+            self._cursor_value = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
+            # self.logger.info(f"read record with ELSE, record_cursor_value: {record_cursor_value} and self._cursor_value: {self._cursor_value} ")
+            yield record
+    
+    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+        response_json = response.json()
+        results = response_json.get('results')
+        for record in results:
+            yield record
+    
     def get_json_schema(self) -> Mapping[str, Any]:
         full_schema = {
             "$schema": "http://json-schema.org/draft-07/schema#",
@@ -120,129 +208,6 @@ class ApplovinMaxReportBase(ApplovinMaxStream):
         }
         return full_schema
 
-    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        response_json = response.json()
-        results = response_json.get('results')
-        for record in results:
-            yield record
-
-
-''' Incremental Stream '''
-class ApplovinMaxFullReport(ApplovinMaxReportBase,IncrementalMixin):
-    number_days_backward_default = 7
-    _record_date_format = "YYYY-MM-DD"
-
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._cursor_value = None
-    
-    @property
-    def cursor_field(self) -> Union[str, List[str]]:
-        return "day"
-    
-    @property
-    def state(self) -> Mapping[str, Any]:
-        '''airbyte always starts syncing by checking stream availability, then sets cursor value as your logic at read_records() fucntion''' 
-        # self.logger.info(f"Cursor Getter with IF {self._cursor_value}")
-        return {self.cursor_field: self._cursor_value}
-
-    @state.setter
-    def state(self, value: Mapping[str, Any]):
-        self._cursor_value: datetime.date = pendulum.from_format(value[self.cursor_field], self._record_date_format).add(days=1).date()
-        self.logger.info(f"Cursor Setter {self._cursor_value}")
-    
-    def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
-        slice = []
-        
-        if self.config.get('time_zone'):
-            today_as_string = pendulum.today(self.config['time_zone']).to_date_string()
-        else:
-            today_as_string = pendulum.today().to_date_string()
-
-        # number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
-        number_days_backward: int = int(min(45, self.config.get('number_days_backward')) if self.config.get('number_days_backward') else self.number_days_backward_default)
-        # self.logger.info(f"number days backward: {number_days_backward}")
-
-        if stream_state:
-            ''' this code for incremental run, the stream will start with the last date of record minus number_days_backward'''
-            start_date: datetime.date = self.state[self.cursor_field].subtract(days=number_days_backward)
-            # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
-            start_date_as_str: str = start_date.to_date_string()
-            slice.append({
-                "start": start_date_as_str,
-                "end": today_as_string
-                }
-            )
-
-        elif self._cursor_value: 
-            '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''
-            start_date: datetime.date = pendulum.from_format(self.config["start_date"], self._record_date_format).date()
-            # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
-
-            while start_date <= pendulum.today().date():
-                start_date_as_str: str = start_date.to_date_string()
-                if start_date.month == pendulum.today().month:
-                    slice.append({
-                        "start": start_date_as_str,
-                        "end": today_as_string
-                        }
-                    )
-                else:
-                    end_date_as_str: str = start_date.end_of('month').to_date_string()
-                    slice.append({
-                        "start": start_date_as_str,
-                        "end": end_date_as_str
-                        }
-                    )
-                start_date: datetime.date = start_date.add(months=1).start_of('month')
-
-        else:
-            ''' this code for airbyte to checking stream availability. It will be run first then starting sync. In order to make this procees shorter, start date is yesteray and end date is today'''  
-            start_date:datetime.date = pendulum.today().subtract(days=1).date()
-            # self.logger.info(f"stream slice start date in ELSE {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
-            start_date_as_str: str = start_date.to_date_string()
-            slice.append({
-                "start": start_date_as_str,
-                "end": today_as_string
-                }
-            )
-
-        # self.logger.info(f"stream slice {slice}")
-        return slice or [None]
-
-    def request_params(
-        self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
-    ) -> MutableMapping[str, Any]:
-        request_params = {}
-        request_params.update(stream_slice)
-        request_params.update({"api_key":self.config["api_key"]})
-        request_params.update({"format":"json"})
-        # request_params.update({"filter_package_name":self.package_name})
-        # request_params.update({"columns":"day,package_name,application,estimated_revenue"})
-        request_params.update({"columns":"day,package_name,platform,application,ad_format,ad_unit_waterfall_name,country,custom_network_name,device_type,has_idfa,max_ad_unit,max_ad_unit_id,max_ad_unit_test,network,network_placement,attempts,responses,impressions,estimated_revenue"})
-        self.logger.info(f" stream slice date {stream_slice['start']} - {stream_slice['end']}")
-        return request_params
-    
-    def read_records(
-        self,
-        sync_mode: SyncMode,
-        cursor_field: List[str] = None,
-        stream_slice: Mapping[str, Any] = None,
-        stream_state: Mapping[str, Any] = None,
-    ) -> Iterable[Mapping[str, Any]]:
-        if not stream_slice:
-            return []
-        records = super().read_records(sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state)
-        for record in records:
-            record_cursor_value = pendulum.from_format(record[self.cursor_field], self._record_date_format).date()
-            self._cursor_value = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
-            # self.logger.info(f"read record with ELSE, record_cursor_value: {record_cursor_value} and self._cursor_value: {self._cursor_value} ")
-            yield record
-        
-        # if there is no record backs, the cursor value will be None, so we update it as the start date in config
-        if self._cursor_value == None:
-                self._cursor_value: datetime.date = pendulum.parse((self.config["start_date"])).date()
 
 ''' Realtime Stream '''
 class ApplovinMaxCustomReport(ApplovinMaxFullReport):
@@ -271,12 +236,11 @@ class ApplovinMaxCustomReport(ApplovinMaxFullReport):
         request_params.update(stream_slice)
         request_params.update({"api_key":self.config["api_key"]})
         request_params.update({"format":"json"})
-        # request_params.update({"filter_package_name":self.package_name})
         request_params.update({"sort_day":"ASC"})
         list_of_dimensions_and_metrics = self.get_dimensions() + self.get_metrics()
         colums = ','.join(list_of_dimensions_and_metrics)
         request_params.update({"columns":colums})
-        self.logger.info(f" stream slice date {stream_slice['start']} - {stream_slice['end']}")
+        self.logger.info(f" stream slice date {stream_slice}")
         return request_params
 
     def get_json_schema(self) -> Mapping[str, Any]:
@@ -298,30 +262,6 @@ class ApplovinMaxCustomReport(ApplovinMaxFullReport):
 
 # Source
 class SourceApplovinMax(AbstractSource):
-
-    # def _get_package_name(self,config) -> list:
-    #     list_package_name = []
-    #     list_package_stream = ApplovinMaxCheckConnection(config=config) 
-    #     list_package_record: list = list_package_stream.read_records(sync_mode="full_refresh")
-    #     list_package_name.extend(list_package_record)
-    #     return list_package_name
-
-    # def _generate_applovin_max_full_report_stream(self, config) -> list[Stream]:
-    #     list_package_name = self._get_package_name(config=config)
-    #     for package_name in list_package_name:
-    #         yield ApplovinMaxFullReport(
-    #             package_name=package_name,
-    #             config=config
-    #         )
-    
-    # def _generate_applovin_max_custom_report_stream(self, config) -> list[Stream]:
-    #     list_package_name = self._get_package_name(config=config)
-    #     for package_name in list_package_name:
-    #         yield ApplovinMaxCustomReport(
-    #             package_name=package_name,
-    #             config=config
-    #         )
-
     def check_connection(self, logger, config) -> Tuple[bool, any]:
         try:
             logger.info(f"load API key {config.get('api_key')}")
