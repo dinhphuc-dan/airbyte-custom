@@ -12,9 +12,9 @@ from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
 
 import requests
 from airbyte_cdk.sources import AbstractSource
+from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
 from airbyte_cdk.sources.streams import Stream, IncrementalMixin
 from airbyte_cdk.sources.streams.http import HttpStream
-from airbyte_cdk.sources.streams.http.requests_native_auth import Oauth2Authenticator
 from airbyte_cdk.models import SyncMode
 from source_google_admobs import utils
 from source_google_admobs import schemas
@@ -23,7 +23,7 @@ token_refresh_endpoint = "https://oauth2.googleapis.com/token"
 
 # Basic stream
 class GoogleAdmobsStream(HttpStream, ABC):
-    url_base = "https://admob.googleapis.com/v1/accounts/"
+    url_base = "https://admob.googleapis.com/v1beta/accounts/"
 
     """ 
     Override HttpSteam contructor method, add config params to read publisher_id  from config setup by users --> go to path method in each stream
@@ -32,6 +32,10 @@ class GoogleAdmobsStream(HttpStream, ABC):
     def __init__(self, config: Mapping[str, Any], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config = config
+    
+    @property
+    def availability_strategy(self) -> Optional["AvailabilityStrategy"]:
+        return None
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         return None
@@ -74,22 +78,26 @@ class AListApps(GoogleAdmobsStream):
         """ The items API returns records inside a list dict with name as "name", each contain an appID """
         list_app_dict = {}
         response_json = response.json()
+        # response_json = response.status_code 
 
         """use to check the orgirinal form of reponse from API when use check fuction """
-        # yield response_json
-
-        for name in response_json.get('apps'):
-            for key, value in name.items():
-                if "appId" in key:
-                    app_id_full = value
-                    app_id_trim = re.search(r'(~)[0-9]+',value).group()
-                if "linkedAppInfo" in key:
-                    display_name = name.get('linkedAppInfo').get("displayName")
-                    display_name_cap = string.capwords(display_name)
-                    """remove all special character in display name to make app_name in camel case"""
-                    app_name = re.sub(r'\W+', '',display_name_cap)
-                    list_app_dict.update({"app_name": app_name, "app_id_full": app_id_full, "app_id": app_id_trim})
-            yield list_app_dict
+        yield response_json
+        print('enter response')
+        # for name in response_json.get('apps'):
+        #     print('get response')
+        #     for key, value in name.items():
+        #         if "appId" in key:
+        #             print('appid')
+        #             app_id_full = value
+        #             app_id_trim = re.search(r'(~)[0-9]+',value).group()
+        #         if "linkedAppInfo" in key:
+        #             print('lINKED APP INFO')
+        #             display_name = name.get('linkedAppInfo').get("displayName")
+        #             display_name_cap = string.capwords(display_name)
+        #             """remove all special character in display name to make app_name in camel case"""
+        #             app_name = re.sub(r'\W+', '',display_name_cap)
+        #             list_app_dict.update({"app_name": app_name, "app_id_full": app_id_full, "app_id": app_id_trim})
+        #     yield list_app_dict
 
 class NetworkReportBase(GoogleAdmobsStream):
     """
