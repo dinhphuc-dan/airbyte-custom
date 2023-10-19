@@ -41,7 +41,7 @@ class ListAdSources(GoogleAdmobsStream):
         """
         Override get_json_schema CDK method to retrieve the schema information dynamically.
         """
-        schema: dict[str, Any] = schemas.list_apps_schema()
+        schema: dict[str, Any] = schemas.list_ad_sources_schema()
 
         return schema
     
@@ -53,14 +53,13 @@ class ListAdSources(GoogleAdmobsStream):
         """use to check the orgirinal form of reponse from API when use check fuction """
         # yield response_json
         for adSource in response_json.get('adSources'):
-            if adSource.get('adSourceId') != '5450213213286189855':
-                for key, value in adSource.items():
-                    if "title" in key:
-                        adSource_name = value
-                    if "adSourceId" in key:
-                        adSource_id = value
-                list_adSources.update({adSource_name: adSource_id})
-        yield list_adSources
+            for key, value in adSource.items():
+                if "title" in key:
+                    adSource_name = value
+                if "adSourceId" in key:
+                    adSource_id = value
+            list_adSources.update({'adSource_name':adSource_name, 'adSource_id' :adSource_id})
+            yield list_adSources
 class MediationReportBase(GoogleAdmobsStream):
     """
     Base class for incremental stream and custom mediation report stream

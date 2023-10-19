@@ -55,7 +55,8 @@ class SourceGoogleAdmobs(AbstractSource):
 
         for item in filter(None,list_adSource_name_and_id_dict):
             for key, value in item.items():
-                list_adSource_id.append(value)
+                if "adSource_id" in key and value != '5450213213286189855':
+                    list_adSource_id.append(value)
         return list_adSource_id
 
     def check_connection(self, logger, config) -> Tuple[bool, any]:
@@ -133,7 +134,8 @@ class SourceGoogleAdmobs(AbstractSource):
         """
         :param config: A Mapping of the user input configuration as defined in the connector spec.
         """
-        streams = [ListAdSources(config=config)]
+        auth = self.get_authenticator(config)
+        streams = [ListAdSources(authenticator=auth, config=config)]
 
         """ add mediation one by one in the streams list"""
         mediation_report_streams = self._generate_mediation_report_streams(config=config)

@@ -14,6 +14,16 @@ listappsschema = {
   }
 }
 
+listadsourceschema = {
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": [],
+  "properties": {
+    "adSource_name": {"type": ["null", "string"]},
+    "adSource_id": {"type": ["null", "string"]}
+  }
+}
+
 networkschema =  {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
@@ -72,6 +82,9 @@ mediationschema =  {
 
 def list_apps_schema() -> dict:
     return listappsschema
+
+def list_ad_sources_schema() -> dict:
+    return listadsourceschema
 
 def network_report_schema() -> dict:
     return networkschema
