@@ -23,12 +23,13 @@ class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
     Adjust only some part so that users can pick custom items
     """
     primary_key = "uuid"
-    _record_date_format = "%Y%m%d"
 
     def __init__(self, *args, **kwargs):
         """Due to multiple inheritance, so need MRO"""
         super(RealtimeCustomReport, self).__init__(*args, **kwargs)
         self._cursor_value = None
+        self.number_days_backward = self.config.get("number_days_backward", 7)
+        self.timezone  = self.config.get("timezone", "UTC")
   
     @property
     def cursor_field(self) -> Union[str, List[str]]:
@@ -43,16 +44,12 @@ class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
     
     @property
     def state(self) -> Mapping[str, Any]:
-        if self._cursor_value:
-            # self.logger.info(f"Cursor Getter with IF {self._cursor_value}")
-            return {self.cursor_field: self._cursor_value}
-        else:
-            # self.logger.info(f"Cursor Getter with ELSE {self._cursor_value} and start date is { self.config['start_date'] }")
-            return {self.cursor_field: utils.string_to_date(self.config["start_date"])}
+        # self.logger.info(f"Cursor Getter {self._cursor_value}")
+        return {self.cursor_field: self._cursor_value}
 
     @state.setter
     def state(self, value: Mapping[str, Any]):
-        self._cursor_value = utils.string_to_date(value[self.cursor_field]) + datetime.timedelta(days=1)
+        self._cursor_value = pendulum.parse(value[self.cursor_field]).add(days=1).date()
         self.logger.info(f"Cursor Setter {self._cursor_value}")
     
     def get_dimensions(self) ->list:
@@ -127,19 +124,24 @@ class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
 
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice = []
-        if self.config.get('time_zone'):
-            today = pendulum.today(self.config['time_zone']).date()
-        else:
-            today = pendulum.today().date()
-        start_date: datetime.date = self.state[self.cursor_field]
+        data_avaliable_date : datetime.date = pendulum.today(self.timezone).date()
+
+        if stream_state:
+            ''' this code for incremental run, the stream will start with the last date of record minus number_days_backward'''
+            start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
+            # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+
+        else: 
+            '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''
+            start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
+            # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
 
         slice.append({
             'startDate': utils.turn_date_to_dict(start_date),
-            'endDate': utils.turn_date_to_dict(today),
+            'endDate': utils.turn_date_to_dict(data_avaliable_date),
             }
         )
-        # self.logger.info(f"today {today}")
-        self.logger.info(f"stream slice {slice}")
+
         return slice or [None]
 
     def read_records(
@@ -153,8 +155,8 @@ class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
             return []
         records = super().read_records(sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state)
         for record in records:
-            next_cursor_value = utils.string_to_date(record[self.cursor_field], self._record_date_format)
-            self._cursor_value = max(self._cursor_value, next_cursor_value) if self._cursor_value else next_cursor_value
-            # self.logger.info(f"Record date is {record['DATE']} and self._cursor_value {self._cursor_value} ")
+            record_cursor_value = pendulum.parse(record[self.cursor_field]).date()
+            self._cursor_value = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
+            # self.logger.info(f"read record with ELSE, record_cursor_value: {record_cursor_value} and self._cursor_value: {self._cursor_value} ")
             yield record
     

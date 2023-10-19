@@ -2,7 +2,7 @@
   "streams": [
     {
       "stream": {
-        "name": "MP~8247961462",
+        "name": "CustomMP~5768015857",
         "json_schema": {},
         "supported_sync_modes": ["full_refresh", "incremental"]
       },

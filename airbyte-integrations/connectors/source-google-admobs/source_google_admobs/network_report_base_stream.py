@@ -81,23 +81,19 @@ class AListApps(GoogleAdmobsStream):
         # response_json = response.status_code 
 
         """use to check the orgirinal form of reponse from API when use check fuction """
-        yield response_json
-        print('enter response')
-        # for name in response_json.get('apps'):
-        #     print('get response')
-        #     for key, value in name.items():
-        #         if "appId" in key:
-        #             print('appid')
-        #             app_id_full = value
-        #             app_id_trim = re.search(r'(~)[0-9]+',value).group()
-        #         if "linkedAppInfo" in key:
-        #             print('lINKED APP INFO')
-        #             display_name = name.get('linkedAppInfo').get("displayName")
-        #             display_name_cap = string.capwords(display_name)
-        #             """remove all special character in display name to make app_name in camel case"""
-        #             app_name = re.sub(r'\W+', '',display_name_cap)
-        #             list_app_dict.update({"app_name": app_name, "app_id_full": app_id_full, "app_id": app_id_trim})
-        #     yield list_app_dict
+        # yield response_json
+        for name in response_json.get('apps'):
+            for key, value in name.items():
+                if "appId" in key:
+                    app_id_full = value
+                    app_id_trim = re.search(r'(~)[0-9]+',value).group()
+                if "linkedAppInfo" in key:
+                    display_name = name.get('linkedAppInfo').get("displayName")
+                    display_name_cap = string.capwords(display_name)
+                    """remove all special character in display name to make app_name in camel case"""
+                    app_name = re.sub(r'\W+', '',display_name_cap)
+                    list_app_dict.update({"app_name": app_name, "app_id_full": app_id_full, "app_id": app_id_trim})
+            yield list_app_dict
 
 class NetworkReportBase(GoogleAdmobsStream):
     """
@@ -107,7 +103,6 @@ class NetworkReportBase(GoogleAdmobsStream):
     Uuid is added so that later on I can deduplicate records in data warehouse
     """
     primary_key = "uuid"
-    number_days_backward_default = 7
 
     def __init__(self, app_name: str = None, app_id: str = None, **kwargs):
         """override __init__ to add app_name and app_id"""
@@ -179,12 +174,13 @@ class NetworkReportBase(GoogleAdmobsStream):
 
 class NetworkReport(NetworkReportBase,IncrementalMixin):
     """Incremental stream for network report api. Just adding some new function to get incremental"""
-    _record_date_format = "%Y%m%d"
 
     def __init__(self, *args, **kwargs):
         """Due to multiple inheritance, so need MRO"""
         super(NetworkReport, self).__init__(*args, **kwargs)
         self._cursor_value = None
+        self.number_days_backward = self.config.get("number_days_backward", 7)
+        self.timezone  = self.config.get("timezone", "UTC")
   
     @property
     def cursor_field(self) -> Union[str, List[str]]:
@@ -192,31 +188,31 @@ class NetworkReport(NetworkReportBase,IncrementalMixin):
     
     @property
     def state(self) -> Mapping[str, Any]:
-        if self._cursor_value:
-            # self.logger.info(f"Cursor Getter with IF {self._cursor_value}")
-            return {self.cursor_field: self._cursor_value}
-        else:
-            # self.logger.info(f"Cursor Getter with ELSE {self._cursor_value}")
-            return {self.cursor_field: utils.string_to_date(self.config["start_date"])}
+        # self.logger.info(f"Cursor Getter {self._cursor_value}")
+        return {self.cursor_field: self._cursor_value}
 
     @state.setter
     def state(self, value: Mapping[str, Any]):
-        self._cursor_value = utils.string_to_date(value[self.cursor_field]) + datetime.timedelta(days=1)
+        self._cursor_value = pendulum.parse(value[self.cursor_field]).add(days=1).date()
         self.logger.info(f"Cursor Setter {self._cursor_value}")
     
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice = []
-        # today: datetime.date = datetime.date.today()
-        if self.config.get('time_zone'):
         
-            today = pendulum.today(self.config['time_zone']).date()
-        else:
-            today = pendulum.today().date()
-        number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
-        yesterday: datetime.date = datetime.date.today() - datetime.timedelta(days=1)
-        start_date: datetime.date = self.state[self.cursor_field] - datetime.timedelta(days=number_days_backward)
+        # data_available_date is the date that the newest data can be accessed
+        data_avaliable_date : datetime.date = pendulum.today(self.timezone).date()
 
-        while start_date <= today:
+        if stream_state:
+            ''' this code for incremental run, the stream will start with the last date of record minus number_days_backward'''
+            start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
+            # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+
+        else: 
+            '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''
+            start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
+            # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+
+        while start_date <= data_avaliable_date:
             end_date: datetime.date = start_date 
             slice.append(
                 {
@@ -226,7 +222,7 @@ class NetworkReport(NetworkReportBase,IncrementalMixin):
             )
             start_date: datetime.date = end_date + datetime.timedelta(days=1)
 
-        self.logger.info(f"stream slice {slice}")
+        # self.logger.info(f"stream slice {slice}")
         return slice or [None]
 
     def request_body_json(
@@ -246,10 +242,6 @@ class NetworkReport(NetworkReportBase,IncrementalMixin):
         dimensions = ['DATE','AD_UNIT','APP','COUNTRY','FORMAT','PLATFORM','MOBILE_OS_VERSION','APP_VERSION_NAME','SERVING_RESTRICTION','GMA_SDK_VERSION']
 
         metrics = ['AD_REQUESTS','MATCHED_REQUESTS','CLICKS','ESTIMATED_EARNINGS','IMPRESSIONS']
-        
-        # dimensions = ['DATE','AD_UNIT','APP','COUNTRY','FORMAT','PLATFORM','MOBILE_OS_VERSION','APP_VERSION_NAME','SERVING_RESTRICTION','GMA_SDK_VERSION']
-
-        # metrics = ['AD_REQUESTS','MATCHED_REQUESTS','SHOW_RATE','MATCH_RATE','CLICKS','ESTIMATED_EARNINGS','IMPRESSIONS','IMPRESSION_CTR','IMPRESSION_RPM']
 
         sort_conditions = [{'dimension': 'DATE', 'order': 'DESCENDING'}]
 
@@ -278,9 +270,9 @@ class NetworkReport(NetworkReportBase,IncrementalMixin):
             return []
         records = super().read_records(sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state)
         for record in records:
-            next_cursor_value = utils.string_to_date(record[self.cursor_field], self._record_date_format)
-            self._cursor_value = max(self._cursor_value, next_cursor_value) if self._cursor_value else next_cursor_value
-            # self.logger.info(f"next_cursor_value: {next_cursor_value} and self._cursor_value: {self._cursor_value} ")
+            record_cursor_value = pendulum.parse(record[self.cursor_field]).date()
+            self._cursor_value = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
+            # self.logger.info(f"read record with ELSE, record_cursor_value: {record_cursor_value} and self._cursor_value: {self._cursor_value} ")
             yield record
 
 

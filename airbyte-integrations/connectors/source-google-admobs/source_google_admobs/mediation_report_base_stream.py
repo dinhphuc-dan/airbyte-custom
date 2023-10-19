@@ -18,9 +18,50 @@ from airbyte_cdk.sources.streams.http.requests_native_auth import Oauth2Authenti
 from airbyte_cdk.models import SyncMode
 from source_google_admobs import utils
 from source_google_admobs import schemas
-from source_google_admobs.network_report_base_stream  import NetworkReportBase
+from source_google_admobs.network_report_base_stream  import GoogleAdmobsStream
 
-class MediationReportBase(NetworkReportBase):
+class ListAdSources(GoogleAdmobsStream):
+    primary_key = None
+
+    def path(
+        self ,stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
+    ) -> str:
+        #Here is how the config params get the publisher id from user's config
+        publisher_id = self.config["publisher_id"]
+        path = f"{publisher_id}/adSources"
+        return path
+    
+    def request_params(
+        self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
+    ) -> MutableMapping[str, Any]:
+        """ if have more than 10,000 ad sources, modify this part with pageSize parameters"""
+        return {}
+    
+    def get_json_schema(self) -> Mapping[str, Any]:
+        """
+        Override get_json_schema CDK method to retrieve the schema information dynamically.
+        """
+        schema: dict[str, Any] = schemas.list_apps_schema()
+
+        return schema
+    
+    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+        """ The items API returns records inside a list dict with name as "name", each contain an appID """
+        list_adSources = {}
+        response_json = response.json()
+
+        """use to check the orgirinal form of reponse from API when use check fuction """
+        # yield response_json
+        for adSource in response_json.get('adSources'):
+            if adSource.get('adSourceId') != '5450213213286189855':
+                for key, value in adSource.items():
+                    if "title" in key:
+                        adSource_name = value
+                    if "adSourceId" in key:
+                        adSource_id = value
+                list_adSources.update({adSource_name: adSource_id})
+        yield list_adSources
+class MediationReportBase(GoogleAdmobsStream):
     """
     Base class for incremental stream and custom mediation report stream
     Due to Admobs API limit 100k row reponse per request, and it also does not support pagination, so I create dynamic stream for each app
@@ -29,11 +70,12 @@ class MediationReportBase(NetworkReportBase):
     """
     primary_key = "uuid"
 
-    def __init__(self, app_name: str = None, app_id: str = None, **kwargs):
+    def __init__(self, app_name: str = None, app_id: str = None, list_adSource_id: List = None ,**kwargs):
         """override __init__ to add app_name and app_id"""
         super().__init__(**kwargs)
         self.app_name = app_name
         self.app_id = app_id
+        self.list_adSource_id = list_adSource_id
 
     @property
     def name(self) -> str:
@@ -97,89 +139,46 @@ class MediationReportBase(NetworkReportBase):
                     result.update({key: next(filter(None, [value.get('microsValue'), value.get('integerValue'),value.get('doubleValue')]),0)})
             yield result
 
-    """ use to check the orgirinal form of reponse from API when use check fuction """
-    # def request_body_json(
-    #     self,
-    #     stream_state: Mapping[str, Any],
-    #     stream_slice: Mapping[str, Any] = None,
-    #     next_page_token: Mapping[str, Any] = None,
-    # ) -> Optional[Mapping]:
-    #     """ 
-    #     POST method needs a body json. 
-    #     Json body according to Google Admobs API: https://developers.google.com/admob/api/v1/reference/rest/v1/accounts.mediationReport/generate 
-    #     """
-    #     date_range = {
-    #         "startDate": {"year": 2022, "month": 12, "day": 18},
-    #         "endDate": {"year": 2022, "month": 12, "day": 18}
-    #         }
-
-    #     app_id = self.app_id
-
-    #     ad_source_id = ['5240798063227064260','1477265452970951479','15586990674969969776','4600416542059544716','6895345910719072481','3528208921554210682','10593873382626181482','17253994435944008978','1063618907739174004','1328079684332308356','2873236629771172317','6432849193975106527','9372067028804390441','18351550913290782395','4839637394546996422','8419777862490735710','3376427960656545613','5208827440166355534','159382223051638006','4100650709078789802','7681903010231960328','6325663098072678541','6925240245545091930','2899150749497968595','18298738678491729107','7505118203095108657','1343336733822567166','2127936450554446159','6060308706800320801','10568273599589928883','11198165126854996598','8079529624516381459','10872986198578383917','8450873672465271579','9383070032774777750','6101072188699264581','3224789793037044399','4918705482605678398','3525379893916449117','3841544486172445473','7068401028668408324','2831998725945605450','3993193775968767067','734341340207269415','3362360112145450544','7295217276740746030','4692500501762622178','7007906637038700218','8332676245392738510','4970775877303683148','7360851262951344112','1940957084538325905','1953547073528090325','4692500501762622185','5506531810221735863','5264320421916134407']
-
-    #     dimensions = ['DATE','AD_SOURCE','AD_SOURCE_INSTANCE','AD_UNIT','APP','MEDIATION_GROUP','COUNTRY','FORMAT','PLATFORM']
-
-    #     metrics = ['AD_REQUESTS','MATCHED_REQUESTS','CLICKS','ESTIMATED_EARNINGS','IMPRESSIONS']
-        
-    #     # dimensions = ['DATE','AD_UNIT','APP','COUNTRY','FORMAT','PLATFORM','MOBILE_OS_VERSION','APP_VERSION_NAME','SERVING_RESTRICTION','GMA_SDK_VERSION']
-
-    #     # metrics = ['AD_REQUESTS','MATCHED_REQUESTS','SHOW_RATE','MATCH_RATE','CLICKS','ESTIMATED_EARNINGS','IMPRESSIONS','IMPRESSION_CTR','IMPRESSION_RPM']
-
-    #     sort_conditions = [{'dimension': 'DATE', 'order': 'DESCENDING'}]
-
-    #     dimension_filters = [{'dimension': 'AD_SOURCE','matches_any': {'values': ad_source_id} }]
-
-    #     report_spec = {
-    #         'dateRange': date_range,
-    #         'dimensions': dimensions,
-    #         'metrics': metrics,
-    #         'sortConditions': sort_conditions,
-    #         'dimensionFilters': dimension_filters
-    #     }
-
-    #     body_json = {"reportSpec": report_spec}
-
-    #     return body_json
-
 class MediationReport(MediationReportBase,IncrementalMixin):
     """Incremental stream for mediation report api. Just adding some new function to get incremental"""
-    _record_date_format = "%Y%m%d"
 
     def __init__(self, *args, **kwargs):
         """Due to multiple inheritance, so need MRO"""
         super(MediationReport, self).__init__(*args, **kwargs)
         self._cursor_value = None
-  
+        self.number_days_backward = self.config.get("number_days_backward", 7)
+        self.timezone  = self.config.get("timezone", "UTC")
+    
     @property
     def cursor_field(self) -> Union[str, List[str]]:
         return "DATE"
     
     @property
     def state(self) -> Mapping[str, Any]:
-        if self._cursor_value:
-            # self.logger.info(f"Cursor Getter with IF {self._cursor_value}")
-            return {self.cursor_field: self._cursor_value}
-        else:
-            # self.logger.info(f"Cursor Getter with ELSE {self._cursor_value}")
-            return {self.cursor_field: utils.string_to_date(self.config["start_date"])}
+        # self.logger.info(f"Cursor Getter {self._cursor_value}")
+        return {self.cursor_field: self._cursor_value}
 
     @state.setter
     def state(self, value: Mapping[str, Any]):
-        self._cursor_value = utils.string_to_date(value[self.cursor_field]) + datetime.timedelta(days=1)
+        self._cursor_value = pendulum.parse(value[self.cursor_field]).add(days=1).date()
         self.logger.info(f"Cursor Setter {self._cursor_value}")
     
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice = []
-        # today: datetime.date = datetime.date.today()
-        # today = pendulum.today("Asia/Ho_Chi_Minh")
-        if self.config.get('time_zone'):
-            today = pendulum.today(self.config['time_zone']).date()
-        else:
-            today = pendulum.today().date()
-        number_days_backward: int = int(next(filter(None,[self.config.get('number_days_backward')]),self.number_days_backward_default))
-        start_date: datetime.date = self.state[self.cursor_field] - datetime.timedelta(days=number_days_backward)
+        # data_available_date is the date that the newest data can be accessed
+        data_avaliable_date : datetime.date = pendulum.today(self.timezone).date()
 
-        while start_date <= today:
+        if stream_state:
+            ''' this code for incremental run, the stream will start with the last date of record minus number_days_backward'''
+            start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
+            # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+
+        else: 
+            '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''
+            start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
+            # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+
+        while start_date <= data_avaliable_date:
             end_date: datetime.date = start_date 
             slice.append(
                 {
@@ -189,7 +188,7 @@ class MediationReport(MediationReportBase,IncrementalMixin):
             )
             start_date: datetime.date = end_date + datetime.timedelta(days=1)
 
-        self.logger.info(f"stream slice {slice}")
+        # self.logger.info(f"stream slice {slice}")
         return slice or [None]
 
     def request_body_json(
@@ -207,9 +206,8 @@ class MediationReport(MediationReportBase,IncrementalMixin):
         app_id = self.app_id
 
         """ add list ad_source_id does not include Admobs Network"""
-        ad_source_id = ['5240798063227064260','1477265452970951479','15586990674969969776','4600416542059544716','6895345910719072481','3528208921554210682','10593873382626181482','17253994435944008978','1063618907739174004','1328079684332308356','2873236629771172317','6432849193975106527','9372067028804390441','18351550913290782395','4839637394546996422','8419777862490735710','3376427960656545613','5208827440166355534','159382223051638006','4100650709078789802','7681903010231960328','6325663098072678541','6925240245545091930','2899150749497968595','18298738678491729107','7505118203095108657','1343336733822567166','2127936450554446159','6060308706800320801','10568273599589928883','11198165126854996598','8079529624516381459','10872986198578383917','8450873672465271579','9383070032774777750','6101072188699264581','3224789793037044399','4918705482605678398','3525379893916449117','3841544486172445473','7068401028668408324','2831998725945605450','3993193775968767067','734341340207269415','3362360112145450544','7295217276740746030','4692500501762622178','7007906637038700218','8332676245392738510','4970775877303683148','7360851262951344112','1940957084538325905','1953547073528090325','4692500501762622185','5506531810221735863','5264320421916134407']
+        ad_source_id = self.list_adSource_id
 
-        # dimensions = ['DATE','AD_SOURCE','APP']
         dimensions = ['DATE','AD_SOURCE','AD_UNIT','APP','MEDIATION_GROUP','COUNTRY','FORMAT','PLATFORM', 'MOBILE_OS_VERSION', 'APP_VERSION_NAME', 'GMA_SDK_VERSION', 'SERVING_RESTRICTION']
 
         metrics = ['AD_REQUESTS','MATCHED_REQUESTS','CLICKS','ESTIMATED_EARNINGS','IMPRESSIONS']
@@ -241,7 +239,7 @@ class MediationReport(MediationReportBase,IncrementalMixin):
             return []
         records = super().read_records(sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state)
         for record in records:
-            record_cursor_value = utils.string_to_date(record[self.cursor_field], self._record_date_format)
+            record_cursor_value = pendulum.parse(record[self.cursor_field]).date()
             self._cursor_value = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
             # self.logger.info(f"read record with ELSE, record_cursor_value: {record_cursor_value} and self._cursor_value: {self._cursor_value} ")
             yield record
