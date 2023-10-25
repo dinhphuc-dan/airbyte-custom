@@ -1,0 +1,25 @@
+data:
+  allowedHosts:
+    hosts:
+      - TODO # Please change to the hostname of the source.
+  registries:
+    oss:
+      enabled: false
+    cloud:
+      enabled: false
+  connectorSubtype: api
+  connectorType: source
+  definitionId: 4f2bcf62-b14a-41bd-932d-9cb146934c26
+  dockerImageTag: 0.1.0
+  dockerRepository: airbyte/source-mintegral-ads
+  githubIssueLabel: source-mintegral-ads
+  icon: mintegral-ads.svg
+  license: MIT
+  name: Mintegral Ads
+  releaseDate: TODO
+  supportLevel: community
+  releaseStage: alpha
+  documentationUrl: https://docs.airbyte.com/integrations/sources/mintegral-ads
+  tags:
+    - language:python
+metadataSpecVersion: "1.0"

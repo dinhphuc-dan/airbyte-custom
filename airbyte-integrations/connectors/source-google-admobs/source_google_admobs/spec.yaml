@@ -47,7 +47,7 @@ connectionSpecification:
       format: date
     custom_report_dimensions:
       title: Custom Reports Dimension
-      description: Pick iteams in list. Default have DATE, APP and AD_SOURCE
+      description: Pick iteams in list. Default have DATE and APP
       type: array
       order: 6
       minItems: 0
@@ -55,6 +55,7 @@ connectionSpecification:
       items:
         type: string
         enum:
+          - AD_SOURCE
           - AD_UNIT
           - MEDIATION_GROUP
           - COUNTRY

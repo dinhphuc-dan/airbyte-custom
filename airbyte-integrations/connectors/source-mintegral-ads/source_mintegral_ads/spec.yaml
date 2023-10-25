@@ -1,0 +1,45 @@
+documentationUrl: https://docsurl.com
+connectionSpecification:
+  $schema: http://json-schema.org/draft-07/schema#
+  title: Mintegral Ads Spec
+  type: object
+  required:
+    - api_key
+    - access_key
+    - start_date
+  properties:
+    api_key:
+      title: API Key
+      description: Your API Report Key under Account Tab; See <a href="https://adv-new.mintegral.com/doc/en/introduction/register">here</a>
+      order: 0
+      type: string
+      airbyte_secret: true
+    access_key:
+      title: Access Key
+      description: Your Access Key under Account Tab; See <a href="https://adv-new.mintegral.com/doc/en/introduction/register">here</a>
+      order: 1
+      type: string
+      airbyte_secret: true
+    start_date: 
+      title: Start Date
+      description: The start date in the format YYYY-MM-DD
+      order: 2
+      type: string
+      format: date
+    number_days_backward:
+      title: Number of days backward to get data
+      type: integer
+      order: 3
+      description: In case data change, default is 7 days. Maximum is 7 days
+      minimum: 1
+      maximum: 7
+    timezone:
+      title: Your local timezone
+      type: string
+      order: 4
+      description: Default is UTC, See <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">here</a>
+    utc_offset:
+      title: UTC offset
+      type: integer
+      order: 5
+      description: This info will be used in request params, Default is 0, See <a href="https://adv-new.mintegral.com/doc/en/report/performanceReport">here</a>. You can get your standard time offset in <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">here</a>

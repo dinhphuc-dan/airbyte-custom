@@ -53,7 +53,7 @@ class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
         self.logger.info(f"Cursor Setter {self._cursor_value}")
     
     def get_dimensions(self) ->list:
-        required_dimensions = ['DATE','APP','AD_SOURCE']
+        required_dimensions = ['DATE','APP']
         if self.config.get("custom_report_dimensions"):
             return required_dimensions + self.config.get("custom_report_dimensions")
         else:
@@ -109,13 +109,14 @@ class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
             "properties": {
                 "uuid": {"type": ["string"], "description": "Custom unique identifier for each record, to support primary key"},
                 "APP_NAME":{"type": ["null", "string"]},
-                "AD_SOURCE_NAME":{"type": ["null", "string"]},
             },
         }
 
         schema["properties"].update({d: {"type": ["null", "string"]} for d in self.get_dimensions()})
         if "AD_UNIT" in self.get_dimensions():
             schema["properties"].update({"AD_UNIT_NAME": {"type": ["null", "string"]}})
+        if "AD_SOURCE" in self.get_dimensions():
+            schema["properties"].update({"AD_SOURCE_NAME":{"type": ["null", "string"]}})
         if "MEDIATION_GROUP" in self.get_dimensions():
             schema["properties"].update({"MEDIATION_GROUP_NAME": {"type": ["null", "string"]}})
         schema["properties"].update({m: {"type": ["null", "number"]} for m in self.get_metrics()})
