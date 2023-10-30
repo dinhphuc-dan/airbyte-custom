@@ -216,7 +216,7 @@ class MintegralAdsReport(MintegralAdsStream, IncrementalMixin):
                 record.update({'package_name': item['package_name']})
                 record.update({'platform': item['platform']})
                 record.update({'location': item['location']})
-                record.update({'geo': item['geo']})
+                record.update({'geo': str(item['geo'])})
                 record.update({'currency': item['currency']})
                 record.update({'utc': item['utc']})
                 record.update({'offer_id': item['offer_id']})
