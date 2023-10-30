@@ -31,6 +31,7 @@ connectionSpecification:
       type: integer
       order: 3
       description: In case data change, default is 7 days. Maximum is 7 days
+      default: 7
       minimum: 1
       maximum: 7
     timezone:
@@ -43,3 +44,4 @@ connectionSpecification:
       type: integer
       order: 5
       description: This info will be used in request params, Default is 0, See <a href="https://adv-new.mintegral.com/doc/en/report/performanceReport">here</a>. You can get your standard time offset in <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">here</a>
+      default: 0
