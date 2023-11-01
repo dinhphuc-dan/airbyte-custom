@@ -7,9 +7,10 @@ from setuptools import find_packages, setup
 
 MAIN_REQUIREMENTS = [
     "airbyte-cdk==0.51.0",
-    "PyJWT",
-    "requests",
-    "cryptography"
+    "PyJWT==2.8.0",
+    "cryptography==41.0.3",
+    "pandas==2.1.2"
+
 ]
 
 TEST_REQUIREMENTS = [
