@@ -200,5 +200,6 @@ class AppleStoreReport(AppleStoreCustomStream, IncrementalMixin):
     
     def get_json_schema(self) -> Mapping[str, Any]:
         function_name = self.report_name + "Schema"
-        full_schema =getattr(schema, function_name)
+        get_function =getattr(schema, function_name)
+        full_schema =get_function()
         return full_schema
