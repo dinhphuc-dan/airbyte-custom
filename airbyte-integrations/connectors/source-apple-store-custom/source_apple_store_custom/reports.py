@@ -126,6 +126,7 @@ class AppleStoreReport(AppleStoreCustomStream, IncrementalMixin):
         df.rename(columns=lambda x: x.replace('-','_'), inplace=True)
         # replace Nan value as None
         df.replace(np.nan, None, inplace=True)
+        df.replace(" ", None, inplace=True)
         for record in df.to_dict(orient='records'):
             yield record
         
