@@ -1,0 +1,25 @@
+data:
+  allowedHosts:
+    hosts:
+      - TODO # Please change to the hostname of the source.
+  registries:
+    oss:
+      enabled: false
+    cloud:
+      enabled: false
+  connectorSubtype: api
+  connectorType: source
+  definitionId: 69d2962b-f77b-4c58-ba77-294b2815a848
+  dockerImageTag: 0.1.0
+  dockerRepository: airbyte/source-tiktok-ads-custom
+  githubIssueLabel: source-tiktok-ads-custom
+  icon: tiktok-ads-custom.svg
+  license: MIT
+  name: Tiktok Ads Custom
+  releaseDate: TODO
+  supportLevel: community
+  releaseStage: alpha
+  documentationUrl: https://docs.airbyte.com/integrations/sources/tiktok-ads-custom
+  tags:
+    - language:python
+metadataSpecVersion: "1.0"
