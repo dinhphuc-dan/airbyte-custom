@@ -223,7 +223,7 @@ class TiktokAdsAdGroupReport(TiktokAdsCustomStream, IncrementalMixin):
         response_json = response.json()
         total_page = response_json['data']['page_info']['total_page']
         page = response_json['data']['page_info']['page']
-        if page == total_page:
+        if page == total_page or total_page == 0:
             return None
         else:
             return page
