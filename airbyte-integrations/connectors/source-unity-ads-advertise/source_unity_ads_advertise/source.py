@@ -15,6 +15,9 @@ from airbyte_cdk.sources.streams.http.requests_native_auth import TokenAuthentic
 from airbyte_cdk.models import SyncMode
 import pendulum
 import datetime
+from io import StringIO
+import pandas as pd
+import numpy as np
 
 
 # Basic full refresh stream
@@ -80,9 +83,9 @@ class UnityAdsAdvertiseCheckConnectionStream(UnityAdsAdvertiseStream):
         #     "scale": "day",
         #     # "splitBy": "campaignSet,creativePack,adType,campaign,target,sourceAppId,store,country,platform,osVersion,skadConversionValue"
         #     "splitBy": "creativePack,adType,campaign,target,store,country,platform,osVersion,skadConversionValue",
-        #     "campaigns": "64c21e1a01a041430d59345f",
-        #     "creativePacks": "64c210df7d72f02c0198770c",
-        #     "countries": "BR"
+        #     # "campaigns": "64c21e1a01a041430d59345f",
+        #     "creativePacks": "656986e46ceb4ea199dedb26",
+        #     # "countries": "BR"
 
         # }
         return params
@@ -221,25 +224,20 @@ class UnityAdsAdvertiseIncrementalStream(UnityAdsAdvertiseStream, IncrementalMix
     
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         response_as_string: str = response.content.decode('utf-8-sig')
-        response_as_list: list = response_as_string.split('\n')
-        # self.logger.info(f"PARSE RESPONSE list {response_as_list}")
         '''
-        response_as_list return all column name in first item (separated by comma)
+        First, we convert response text to string by decoding utf-8-sig
+        Then, we covert response string to a file object using StringIO
+        After that, we load file object to pandas frame and rename column
+        Finally, we yield records by using to_dict() of pandas data frame
         '''
-        list_column_name: list = response_as_list[0].split(',')
-        # self.logger.info(f"PARSE RESPONSE list column {list_column_name}")
-        number_column: int = len(list_column_name)
-        # self.logger.info(f"PARSE RESPONSE numer column {number_column}")
-        record = {}
-        for number in range(1, len(response_as_list)):
-            if response_as_list[number]: 
-                data: list = response_as_list[number].split(',')
-                # self.logger.info(f"first range and data {data}")
-                if number_column == len(data): # make sure number of data is equal to number of column
-                    # self.logger.info(f"IF number column vs len")
-                    for no in range(0,number_column):
-                        record.update({list_column_name[no].replace(' ','_'):data[no].replace('\"','')})
-                    yield record
+        # load response to pandas data frame
+        df = pd.read_csv(StringIO(response_as_string))
+        # rename column
+        df.rename(columns=lambda x: x.replace(' ','_'), inplace=True)
+        # replace Nan value as None
+        df.replace(np.nan, None, inplace=True)
+        for record in df.to_dict(orient='records'):
+            yield record
 
 # Source
 class SourceUnityAdsAdvertise(AbstractSource):
