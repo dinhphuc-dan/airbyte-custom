@@ -16,6 +16,7 @@ from airbyte_cdk.models import SyncMode
 import pendulum
 import datetime
 from io import StringIO
+import csv
 import pandas as pd
 import numpy as np
 
@@ -81,11 +82,12 @@ class UnityAdsAdvertiseCheckConnectionStream(UnityAdsAdvertiseStream):
         #     "start": start_date, 
         #     "end": end_date, 
         #     "scale": "day",
-        #     # "splitBy": "campaignSet,creativePack,adType,campaign,target,sourceAppId,store,country,platform,osVersion,skadConversionValue"
-        #     "splitBy": "creativePack,adType,campaign,target,store,country,platform,osVersion,skadConversionValue",
-        #     # "campaigns": "64c21e1a01a041430d59345f",
+
+        #     "splitBy": "campaign,creativePack,adType,target,store,platform,country,skadConversionValue,osVersion",
+            
+        #     "campaigns": "65698eaad59d1084d25e3133",
         #     "creativePacks": "656986e46ceb4ea199dedb26",
-        #     # "countries": "BR"
+        #     # "osVersions": "17.1.2"
 
         # }
         return params
@@ -93,6 +95,7 @@ class UnityAdsAdvertiseCheckConnectionStream(UnityAdsAdvertiseStream):
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         response_as_string = response.content.decode('utf-8-sig').split('\n')
         yield {"response": response_as_string}
+
 
 class UnityAdsAdvertiseIncrementalStream(UnityAdsAdvertiseStream, IncrementalMixin):
     primary_key = None
@@ -201,7 +204,7 @@ class UnityAdsAdvertiseIncrementalStream(UnityAdsAdvertiseStream, IncrementalMix
     ) -> MutableMapping[str, Any]:
         params = {
             "scale": "day",
-            "splitBy": "creativePack,adType,campaign,target,store,country,platform,osVersion,skadConversionValue"
+            "splitBy": "creativePack,adType,campaign,target,store,country,platform,osVersion,skadConversionValue",
         }
         self.logger.info(f"Slice in params {stream_slice}")
         params.update(stream_slice)
@@ -222,6 +225,20 @@ class UnityAdsAdvertiseIncrementalStream(UnityAdsAdvertiseStream, IncrementalMix
             self._cursor_value: datetime.date = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
             yield record
     
+    # def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+    #     '''
+    #     First we decode the response into string.
+    #     The string then can convert into a CSV file by using StringIO,
+    #     In addition, we take the header of the CSV file and replace all white space by character "_"
+    #     '''
+    #     response_as_string: str = response.content.decode('utf-8-sig')
+    #     response_as_list: list = response_as_string.split('\n')
+    #     list_column_name: list = response_as_list[0].replace(' ','_').split(',') # get the correct column name
+    #     df = csv.DictReader(StringIO(response_as_string), fieldnames = list_column_name)
+    #     next(df, None) # skip the header before loop for
+    #     for record in df:
+    #         yield record
+
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         response_as_string: str = response.content.decode('utf-8-sig')
         '''
@@ -234,8 +251,14 @@ class UnityAdsAdvertiseIncrementalStream(UnityAdsAdvertiseStream, IncrementalMix
         df = pd.read_csv(StringIO(response_as_string))
         # rename column
         df.rename(columns=lambda x: x.replace(' ','_'), inplace=True)
-        # replace Nan value as None
-        df.replace(np.nan, None, inplace=True)
+        # replace Nan value, Infinity as None
+        df.replace([np.nan,np.inf,-np.inf], None, inplace=True)
+        # two below column tend to get INT, so we make sure they both are string
+        df = df.astype({
+            'target_id': str,
+            'target_store_id': str,
+            'SKAd_conversion_value': str
+        })
         for record in df.to_dict(orient='records'):
             yield record
 
