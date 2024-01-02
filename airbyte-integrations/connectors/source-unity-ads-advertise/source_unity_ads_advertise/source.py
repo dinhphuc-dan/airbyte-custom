@@ -186,7 +186,8 @@ class UnityAdsAdvertiseIncrementalStream(UnityAdsAdvertiseStream, IncrementalMix
                     }
                 )
             else:
-                end_date_as_str: str = start_date.end_of('month').to_date_string()
+                end_date_as_str: str = start_date.end_of('month').add(days=1).to_date_string()
+                # due to Unity API return data of day before end_date, so we add 1 day to end_date
                 slice.append({
                     "start": start_date_as_str,
                     "end": end_date_as_str
