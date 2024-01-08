@@ -207,7 +207,7 @@ class MediationReport(MediationReportBase,IncrementalMixin):
         """ add list ad_source_id does not include Admobs Network"""
         ad_source_id = self.list_adSource_id
 
-        dimensions = ['DATE','AD_SOURCE','AD_UNIT','APP','MEDIATION_GROUP','COUNTRY','FORMAT','PLATFORM', 'MOBILE_OS_VERSION', 'APP_VERSION_NAME', 'GMA_SDK_VERSION', 'SERVING_RESTRICTION']
+        dimensions = ['DATE','AD_SOURCE','AD_UNIT','APP','MEDIATION_GROUP','COUNTRY','FORMAT','PLATFORM', 'MOBILE_OS_VERSION', 'APP_VERSION_NAME']
 
         metrics = ['AD_REQUESTS','MATCHED_REQUESTS','CLICKS','ESTIMATED_EARNINGS','IMPRESSIONS']
 
