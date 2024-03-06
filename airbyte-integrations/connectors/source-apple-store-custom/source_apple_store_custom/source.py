@@ -21,7 +21,7 @@ class SourceAppleStoreCustom(AbstractSource):
     def _get_list_sale_report_stream(self, config) -> list[Stream]:
         auth = AppleStoreConnectAPIAuthenticator(config=config)
         dict_sale_reports = {
-            "SummarySales" : {"reportType":"SALES", "reportSubType":"SUMMARY", "frequency":"DAILY", "version":"1_0", "cursor_field": "Begin_Date", "cursor_format":"MM/DD/YYYY"},
+            "SummarySales" : {"reportType":"SALES", "reportSubType":"SUMMARY", "frequency":"DAILY", "version":"1_1", "cursor_field": "Begin_Date", "cursor_format":"MM/DD/YYYY"},
             "SubscriptionEvent": {"reportType":"SUBSCRIPTION_EVENT", "reportSubType":"SUMMARY", "frequency":"DAILY", "version":"1_3","cursor_field": "Event_Date","cursor_format":"YYYY-MM-DD"},  
             # "Subscriber":  {"reportType":"SUBSCRIBER", "reportSubType":"DETAILED", "frequency":"DAILY", "version":"1_3"},
             # "Subscription": {"reportType":"SUBSCRIPTION", "reportSubType":"SUMMARY", "frequency":"DAILY", "version":"1_3"}, 

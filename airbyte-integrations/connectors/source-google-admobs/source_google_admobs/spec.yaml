@@ -91,10 +91,16 @@ connectionSpecification:
       description: Due to Admob adjust data in the past, usually after 7 days it will stop changing so default is 7 days
       minimum: 1
       default: 7
+    get_last_X_days:
+      title: Get last X days data for Custom Reports
+      type: boolean
+      order: 9
+      description: Important** This fuction ignores your Start Date and only Get last X days data for full refresh method, X = Number of days backward. For example, if you fill 7 in Number of days backwards, and choose this option as True, and then choose full refresh, the Custom Reports stream will record last 7 days data from today (according to your timezone setting). 
+      default: false
     time_zone:
       title: Your local timezone
       type: string
-      order: 9
+      order: 10
       description: Default is UTC, get timezone name in https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 
 
