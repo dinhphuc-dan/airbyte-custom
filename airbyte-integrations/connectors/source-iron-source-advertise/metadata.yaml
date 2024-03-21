@@ -1,0 +1,25 @@
+data:
+  allowedHosts:
+    hosts:
+      - TODO # Please change to the hostname of the source.
+  registries:
+    oss:
+      enabled: false
+    cloud:
+      enabled: false
+  connectorSubtype: api
+  connectorType: source
+  definitionId: bca792dd-30ec-45a6-8e52-1167266d32d3
+  dockerImageTag: 0.1.0
+  dockerRepository: airbyte/source-iron-source-advertise
+  githubIssueLabel: source-iron-source-advertise
+  icon: iron-source-advertise.svg
+  license: MIT
+  name: Iron Source Advertise
+  releaseDate: TODO
+  supportLevel: community
+  releaseStage: alpha
+  documentationUrl: https://docs.airbyte.com/integrations/sources/iron-source-advertise
+  tags:
+    - language:python
+metadataSpecVersion: "1.0"
