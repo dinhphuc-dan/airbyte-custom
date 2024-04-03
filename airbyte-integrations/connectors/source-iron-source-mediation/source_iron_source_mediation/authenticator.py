@@ -55,15 +55,3 @@ class IronSourceMediationAuthenticator(requests.auth.AuthBase):
         access_token = access_token_and_expire_time['access_token']
         r.headers["Authorization"] = f"Bearer {access_token}"
         return r
-    
-
-
-# with open(r"D:\airbyte_custom\airbyte-integrations\connectors\source-iron-source-mediation\secrets\config.json", "r" ) as config_file:
-#     config = json.load(config_file)
-
-# test_api = IronSourceMediationAuthenticator(config=config)
-# test_access_token = test_api._get_access_token()
-# print(test_access_token)
-# print(type(test_access_token))
-# x = test_api._handel_access_token_expire_time()
-# print(x)

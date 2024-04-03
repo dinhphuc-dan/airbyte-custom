@@ -78,6 +78,7 @@ class IronSourceMediationAdSourceReport(IronSourceMediationStream, IncrementalMi
         self._cursor_value = None
         self.number_days_backward = self.config.get("number_days_backward", 7)
         self.timezone  = self.config.get("timezone", "UTC")
+        self.get_last_X_days = self.config.get("get_last_X_days", False)
 
     @property
     def name(self) -> str:
@@ -138,6 +139,11 @@ class IronSourceMediationAdSourceReport(IronSourceMediationStream, IncrementalMi
             ''' this code for incremental run, the stream will start with the last date of record minus number_days_backward'''
             start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
             # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+
+        elif self.get_last_X_days:
+            '''' this code for full refresh run and get_last_X_days is true, the stream will start with today date minus number_days_backward'''
+            start_date: datetime.date = pendulum.today(self.timezone).subtract(days=self.number_days_backward).date()
+            # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
 
         else: 
             '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''

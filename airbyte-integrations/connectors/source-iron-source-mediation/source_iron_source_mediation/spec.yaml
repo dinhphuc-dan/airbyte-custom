@@ -33,5 +33,11 @@ connectionSpecification:
       type: integer
       order: 4
       description: Number of days backward to get data for daily incremental sync, default is 7
+    get_last_X_days:
+      title: Get last X days data for Full Refresh
+      type: boolean
+      order: 5
+      description: Important** This fuction ignores your Start Date and only Get last X days data for full refresh method, X = Number of days backward. For example, if you fill 7 in Number of days backwards, and choose this option as True, and then choose full refresh, the streams will record last 7 days data from today (UTC Time). 
+      default: false
 
 
