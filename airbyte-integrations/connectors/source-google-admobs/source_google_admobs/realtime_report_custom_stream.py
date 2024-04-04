@@ -50,7 +50,15 @@ class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
 
     @state.setter
     def state(self, value: Mapping[str, Any]):
-        self._cursor_value = pendulum.parse(value[self.cursor_field]).add(days=1).date()
+        # self.logger.info(f"Cursor Setter BEFORE {value}")
+        ''' 
+        in case the first run does not return any record, the second incremental run will get value of cursor_field of stream state as null
+        which in turn will cause error. Thus, we add if value of cursor_field is None then getting the config start_date instead
+        '''
+        if value[self.cursor_field] is None:
+            self._cursor_value = pendulum.parse(self.config["start_date"]).date()
+        else:
+            self._cursor_value = pendulum.parse(value[self.cursor_field]).add(days=1).date()
         self.logger.info(f"Cursor Setter {self._cursor_value}")
     
     def get_dimensions(self) ->list:
@@ -128,16 +136,16 @@ class RealtimeCustomReport(MediationReportBase,IncrementalMixin ):
         slice = []
         data_avaliable_date : datetime.date = pendulum.today(self.timezone).date()
 
-        if stream_state:
-            ''' this code for incremental run, the stream will start with the last date of record minus number_days_backward'''
-            start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
+        if self.get_last_X_days:
+            '''' this code for all kind of run, such as: the first time run or full refresh or incremental run, the stream will start with today date minus number_days_backward'''
+            start_date: datetime.date = pendulum.today(self.timezone).subtract(days=self.number_days_backward).date()
             # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
 
-        elif self.get_last_X_days:
-            '''' this code for (the first time run or full refresh run) and get_last_X_days is true, the stream will start with today date minus number_days_backward'''
-            start_date: datetime.date = pendulum.today(self.timezone).subtract(days=self.number_days_backward).date()
+        elif stream_state:
+            ''' this code for incremental run and get_last_X_days is false, the stream will start with the last date of stream state minus number_days_backward'''
+            start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
             # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
-        
+
         else: 
             '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''
             start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
