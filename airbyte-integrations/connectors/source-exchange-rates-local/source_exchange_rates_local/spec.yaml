@@ -32,3 +32,16 @@ connectionSpecification:
       examples:
         - EUR
         - USD
+    number_days_backward:
+      title: Number of days backward to get data
+      type: integer
+      order: 8
+      description: Number of days backward to get data, default is 2
+      minimum: 1
+      default: 2
+    get_last_X_days:
+      title: Get last X days data
+      type: boolean
+      order: 9
+      description: Important** This fuction ignores your Start Date and only Get last X days data, X = Number of days backward. For example, if you fill 7 in Number of days backwards, and choose this option as True, any streams will record last 7 days data from today (according to your timezone setting). 
+      default: false

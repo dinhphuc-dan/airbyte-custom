@@ -21,17 +21,25 @@ class ExchangeRates(HttpStream):
     # HttpStream related fields
     url_base = "https://api.apilayer.com/exchangerates_data/"
     cursor_field = date_field_name
-    primary_key = ""
+    primary_key = None
 
-    def __init__(self, base: Optional[str], start_date: DateTime, access_key: str,):
-        super().__init__()
-        self._base = base
-        self._start_date = start_date
-        self.access_key = access_key
+    def __init__(self, config, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._base = config.get("base", "USD")
+        self._start_date = config["start_date"]
+        self.access_key = config["access_key"]
+        self.number_days_backward = config.get("number_days_backward", 2)
+        self.timezone  = config.get("timezone", "UTC")
+        self.get_last_X_days = config.get("get_last_X_days", False)
+    
+    @property
+    def availability_strategy(self) -> Optional["AvailabilityStrategy"]:
+        return None
 
     def path(
         self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
     ) -> str:
+        self.logger.info(f"Request Path {stream_slice[self.date_field_name]}")
         return stream_slice[self.date_field_name]
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
@@ -56,21 +64,25 @@ class ExchangeRates(HttpStream):
 
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, Any]]]:
         stream_state = stream_state or {}
-        start_date = pendulum.parse(stream_state.get(self.date_field_name, self._start_date)).subtract(days=1)
-        self.logger.info(f"Stream Slice {start_date}")
+        # self.logger.info(f"Stream Slice Stream State {stream_state }")
+        if self.get_last_X_days is True:
+            start_date = pendulum.today(self.timezone).subtract(days=self.number_days_backward).date()
+        else: 
+            start_date = pendulum.parse(stream_state.get(self.date_field_name, self._start_date)).subtract(days=1).date()
+        # self.logger.info(f"Stream Slice {start_date}")
         return self.chunk_date_range(start_date)
 
     def get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]):
         current_stream_state = current_stream_state or {}
-        self.logger.info(f"Cursor Stream State before if {current_stream_state}")
+        # self.logger.info(f"Cursor Stream State before if {current_stream_state}")
         if latest_record[self.date_field_name] == current_stream_state.get(self.date_field_name, self._start_date):
             current_stream_state[self.date_field_name] = (pendulum.parse(latest_record[self.date_field_name]).add(days=1)).to_date_string()
-            self.logger.info(f"Cursor Stream State with if {current_stream_state}")
+            # self.logger.info(f"Cursor Stream State with if {current_stream_state}")
         else:
             current_stream_state[self.date_field_name] = max(
                 latest_record[self.date_field_name], current_stream_state.get(self.date_field_name, self._start_date)
             )
-            self.logger.info(f"Cursor Stream State with else {current_stream_state}")
+            # self.logger.info(f"Cursor Stream State with else {current_stream_state}")
         return current_stream_state
 
     def chunk_date_range(self, start_date: DateTime, **kwargs) -> Iterable[Mapping[str, Any]]:
@@ -79,11 +91,11 @@ class ExchangeRates(HttpStream):
         The return value is a list of dicts {'date': date_string}.
         """
         days = []
-        now = pendulum.now()
+        now = pendulum.now().date()
         while start_date < now:
             days.append({"date": start_date.to_date_string()})
             start_date = start_date.add(days=1)
-        self.logger.info(f"chunk date range value {days}")
+        # self.logger.info(f"chunk date range value {days}")
         return days
 
 
@@ -116,5 +128,5 @@ class SourceExchangeRatesLocal(AbstractSource):
             return False, e
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
-        return [ExchangeRates(config.get("base"), config["start_date"], config["access_key"])]
+        return [ExchangeRates(config = config)]
 
