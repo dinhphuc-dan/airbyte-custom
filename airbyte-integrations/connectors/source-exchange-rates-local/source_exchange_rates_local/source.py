@@ -92,7 +92,7 @@ class ExchangeRates(HttpStream):
         """
         days = []
         now = pendulum.now().date()
-        while start_date < now:
+        while start_date <= now:
             days.append({"date": start_date.to_date_string()})
             start_date = start_date.add(days=1)
         # self.logger.info(f"chunk date range value {days}")
