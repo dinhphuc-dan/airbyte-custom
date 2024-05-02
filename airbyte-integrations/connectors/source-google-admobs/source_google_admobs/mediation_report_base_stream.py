@@ -106,6 +106,7 @@ class MediationReportBase(GoogleAdmobsStream):
     
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         """ The items API returns records inside a list dict with the first item is header, the next to before last item is row, and the last item is footer """
+        self.logger.info(f"Status code in Parse Response {response.status_code}")
         response_json = response.json()
 
         """ use to check the orgirinal form of reponse from API when use check fuction """

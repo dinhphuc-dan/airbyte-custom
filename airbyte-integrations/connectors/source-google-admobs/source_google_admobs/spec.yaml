@@ -88,14 +88,14 @@ connectionSpecification:
       title: Number of days backward to get data
       type: integer
       order: 8
-      description: Due to Admob adjust data in the past, usually after 7 days it will stop changing so default is 7 days
+      description: Number of days backward to get data for daily incremental sync, default is 7. If you choose Get Last X Days is False, then all incremental streams will get data from date of last sync minus number of days backward.
       minimum: 1
       default: 7
     get_last_X_days:
-      title: Get last X days data for Custom Reports
+      title: Get last X days data
       type: boolean
       order: 9
-      description: Important** This fuction ignores your Start Date and only Get last X days data for full refresh method, X = Number of days backward. For example, if you fill 7 in Number of days backwards, and choose this option as True, and then choose full refresh, the Custom Reports stream will record last 7 days data from today (according to your timezone setting). 
+      description: Important** This fuction ignores your Start Date and only Get last X days data for both full-refresh and incremental method, X = Number of days backward. For example, if you fill 7 in Number of days backwards, and choose this option as True, all streams will record last 7 days data from today (according to your timezone setting). 
       default: false
     time_zone:
       title: Your local timezone
