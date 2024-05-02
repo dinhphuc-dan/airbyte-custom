@@ -51,14 +51,19 @@ connectionSpecification:
       title: Number of days backward to get data
       type: integer
       order: 6
-      description: In case data from Apple change, default is 7 days
+      description: Number of days backward to get data for daily incremental sync, default is 7. If you choose Get Last X Days is False, then all incremental streams will get data from date of last sync minus number of days backward.
       minimum: 1
       default: 7
-    time_zone:
+    get_last_X_days:
+      title: Get last X days data
+      type: boolean
+      order: 7
+      description: Important** This fuction ignores your Start Date and only Get last X days data for both full-refresh and incremental method, X = Number of days backward. For example, if you fill 7 in Number of days backwards, and choose this option as True, all streams will record last 7 days data from today (UTC Time). 
+      default: false
+    timezone:
       title: Your local timezone
       type: string
-      order: 7
-      description: Default is UTC, get timezone name in https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
-
+      order: 8
+      description: Default is UTC, get timezone name in <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">here</a>
 
     
