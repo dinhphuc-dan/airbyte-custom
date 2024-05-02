@@ -80,7 +80,7 @@ class MintegralCheckConnection(MintegralAdsStream):
         if next_page_token:
             next_page = next_page_token + 1
             params.update({"page": next_page})
-        self.logger.info(f"check campaign, params as  {params}")
+        # self.logger.info(f"check campaign, params as  {params}")
         return params
     
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
@@ -96,9 +96,10 @@ class MintegralAdsReport(MintegralAdsStream, IncrementalMixin):
         super().__init__(**kwargs)
         self._list_campaign_as_dict: list = list_campaign_as_dict
         self._cursor_value = None
+        self.utc_offset: str  = str(self.config.get("utc_offset", 0))
         self.number_days_backward: int = self.config.get("number_days_backward", 7)
         self.timezone: str  = self.config.get("timezone", "UTC")
-        self.utc_offset: str  = str(self.config.get("utc_offset", 0))
+        self.get_last_X_days = self.config.get("get_last_X_days", False)
     
     def path(
         self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
@@ -131,15 +132,20 @@ class MintegralAdsReport(MintegralAdsStream, IncrementalMixin):
         # data_available_date is the date that the newest data can be accessed
         data_avaliable_date : datetime.date = pendulum.today(self.timezone).date()
 
-        if stream_state:
-            ''' this code for incremental run, the stream will start with the last date of record minus number_days_backward'''
-            start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
+        if self.get_last_X_days:
+            '''' this code for all kind of run, such as: the first time run or full refresh or incremental run, the stream will start with today date minus number_days_backward'''
+            start_date: datetime.date = pendulum.today(self.timezone).subtract(days=self.number_days_backward).date()
             # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+
+        elif stream_state:
+            ''' this code for incremental run and get_last_X_days is false, the stream will start with the last date of stream state minus number_days_backward'''
+            start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
+            # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
 
         else: 
             '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''
             start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
-            # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+            # self.logger.info(f"stream slice start date in ELSE {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
         
         while start_date <= data_avaliable_date:
             start_date_as_str: str = start_date.to_date_string()
@@ -206,7 +212,7 @@ class MintegralAdsReport(MintegralAdsStream, IncrementalMixin):
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         response_json = response.json()
         # yield response_json
-
+        self.logger.info(f"Status code in Parse Response {response.status_code}")
         if response_json['data'] is None:
             yield {}
         else:
