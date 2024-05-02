@@ -97,7 +97,7 @@ connectionSpecification:
       order: 9
       description: Important** This fuction ignores your Start Date and only Get last X days data for both full-refresh and incremental method, X = Number of days backward. For example, if you fill 7 in Number of days backwards, and choose this option as True, all streams will record last 7 days data from today (according to your timezone setting). 
       default: false
-    time_zone:
+    timezone:
       title: Your local timezone
       type: string
       order: 10
