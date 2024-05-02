@@ -86,6 +86,7 @@ class ApplovinMaxFullReport(ApplovinMaxStream,IncrementalMixin):
         self._cursor_value = None
         self.number_days_backward = self.config.get("number_days_backward", 7)
         self.timezone  = self.config.get("timezone", "UTC")
+        self.get_last_X_days = self.config.get("get_last_X_days", False)
 
     @property
     def name(self) -> str:
@@ -113,15 +114,21 @@ class ApplovinMaxFullReport(ApplovinMaxStream,IncrementalMixin):
         # data_available_date is the date that the newest data can be accessed
         data_avaliable_date : datetime.date = pendulum.today(self.timezone).date()
 
-        if stream_state:
-            ''' this code for incremental run, the stream will start with the last date of record minus number_days_backward'''
-            start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
+        if self.get_last_X_days:
+            '''' this code for all kind of run, such as: the first time run or full refresh or incremental run, the stream will start with today date minus number_days_backward'''
+            start_date: datetime.date = pendulum.today(self.timezone).subtract(days=self.number_days_backward).date()
             # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+
+        elif stream_state:
+            ''' this code for incremental run and get_last_X_days is false, the stream will start with the last date of stream state minus number_days_backward'''
+            start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
+            # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
 
         else: 
             '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''
             start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
-            # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+            # self.logger.info(f"stream slice start date in ELSE {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+
 
         while start_date <= data_avaliable_date:
             start_date_as_str: str = start_date.to_date_string()
@@ -151,8 +158,6 @@ class ApplovinMaxFullReport(ApplovinMaxStream,IncrementalMixin):
         request_params.update(stream_slice)
         request_params.update({"api_key":self.config["api_key"]})
         request_params.update({"format":"json"})
-        # request_params.update({"filter_package_name":self.package_name})
-        # request_params.update({"columns":"day,package_name,application,estimated_revenue"})
         request_params.update({"columns":"day,package_name,platform,application,ad_format,ad_unit_waterfall_name,country,custom_network_name,device_type,has_idfa,max_ad_unit,max_ad_unit_id,max_ad_unit_test,network,network_placement,attempts,responses,impressions,estimated_revenue"})
         self.logger.info(f" stream slice date {stream_slice}")
         return request_params
@@ -174,6 +179,7 @@ class ApplovinMaxFullReport(ApplovinMaxStream,IncrementalMixin):
             yield record
     
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+        self.logger.info(f"Status code in Parse Response {response.status_code}")
         response_json = response.json()
         results = response_json.get('results')
         for record in results:
@@ -279,12 +285,9 @@ class SourceApplovinMax(AbstractSource):
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
         streams = []
-
-        # applovin_max_report_stream = self._generate_applovin_max_full_report_stream(config=config)
         streams.append(ApplovinMaxFullReport(config=config))
 
         if  config.get("custom_report_metrics"):
-            # custom_streams = self._generate_applovin_max_custom_report_stream(config=config)
             streams.append(ApplovinMaxCustomReport(config=config))
 
         return streams
