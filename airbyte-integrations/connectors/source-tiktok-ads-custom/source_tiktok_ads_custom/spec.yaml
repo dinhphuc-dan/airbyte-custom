@@ -27,21 +27,28 @@ connectionSpecification:
       pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
       pattern_descriptor: "YYYY-MM-DD"
       format: date
-    number_days_backward:
-      title: Number of days backward to get data
-      type: integer
-      order: 4
-      description: Number of days backward to get data for daily incremental sync, default is 7
-      minimum: 1
-      default: 7
-    time_zone:
-      title: Your local timezone
-      type: string
-      order: 5
-      description: Default is UTC, get timezone name in https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
     include_deleted:
       title: Include Deleted
       type: boolean
-      order: 6
+      order: 4
       description: Whether to include deleted ads groups, default is false
       default: false
+    number_days_backward:
+      title: Number of days backward to get data
+      type: integer
+      order: 5
+      description: Number of days backward to get data for daily incremental sync, default is 7. If you choose Get Last X Days is False, then all incremental streams will get data from date of last sync minus number of days backward.
+      minimum: 1
+      default: 7
+    get_last_X_days:
+      title: Get last X days data
+      type: boolean
+      order: 6
+      description: Important** This fuction ignores your Start Date and only Get last X days data for both full-refresh and incremental method, X = Number of days backward. For example, if you fill 7 in Number of days backwards, and choose this option as True, all streams will record last 7 days data from today (according to your timezone setting).
+      default: false
+    time_zone:
+      title: Your local timezone
+      type: string
+      order: 7
+      description: Default is UTC, get timezone name in https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+    
