@@ -74,10 +74,11 @@ class AppleStoreReport(AppleStoreCustomStream, IncrementalMixin):
         self.report_version = report_version
         self.vendor_number = self.config["vendor_id"]
         self._cursor_value = None
-        self.number_days_backward = self.config.get("number_days_backward", 7)
-        self.timezone  = self.config.get("timezone", "UTC")
         self.cf = cursor_field
         self.cursor_format = cursor_format
+        self.number_days_backward = self.config.get("number_days_backward", 7)
+        self.timezone  = self.config.get("timezone", "UTC")
+        self.get_last_X_days = self.config.get("get_last_X_days", False)
         
     @property
     def name(self) -> str:
@@ -111,6 +112,7 @@ class AppleStoreReport(AppleStoreCustomStream, IncrementalMixin):
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         '''Apple Store Sale Report API response back as gzip compress type, so we need to decompress then decode'''
+        self.logger.info(f"Status code in Parse Response {response.status_code}")
         response_in_gzip = response.content
         response_as_bytes: bytes = gzip.decompress(response_in_gzip)
         response_as_string: str = response_as_bytes.decode('utf-8')
@@ -150,12 +152,20 @@ class AppleStoreReport(AppleStoreCustomStream, IncrementalMixin):
         # data_available_date is the date that the newest data can be accessed
         data_avaliable_date : datetime.date = pendulum.yesterday(self.timezone).date()
         
-        if stream_state:
-            # print(f' stream slice, stream state in IF {stream_state}, {self._cursor_value}')
+        if self.get_last_X_days:
+            '''' this code for all kind of run, such as: the first time run or full refresh or incremental run, the stream will start with today date minus number_days_backward'''
+            start_date: datetime.date = pendulum.today(self.timezone).subtract(days=self.number_days_backward).date()
+            # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+
+        elif stream_state:
+            ''' this code for incremental run and get_last_X_days is false, the stream will start with the last date of stream state minus number_days_backward'''
             start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
-        else:
-            # print(f' stream slice, stream state in ELSE {stream_state}, {self._cursor_value}')
+            # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
+
+        else: 
+            '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''
             start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
+            # self.logger.info(f"stream slice start date in ELSE {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
         
         while start_date < data_avaliable_date:
             start_date_as_str: str = start_date.to_date_string() 
