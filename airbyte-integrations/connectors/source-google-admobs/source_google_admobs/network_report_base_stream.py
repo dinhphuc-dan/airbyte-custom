@@ -254,7 +254,7 @@ class NetworkReport(NetworkReportBase,IncrementalMixin):
 
         app_id = self.app_id
 
-        dimensions = ['DATE','AD_UNIT','APP','COUNTRY','FORMAT','PLATFORM','MOBILE_OS_VERSION','APP_VERSION_NAME']
+        dimensions = ['DATE','AD_UNIT','APP','COUNTRY','FORMAT','PLATFORM','APP_VERSION_NAME']
 
         metrics = ['AD_REQUESTS','MATCHED_REQUESTS','CLICKS','ESTIMATED_EARNINGS','IMPRESSIONS']
 
