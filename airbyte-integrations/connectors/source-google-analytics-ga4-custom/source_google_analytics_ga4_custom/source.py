@@ -172,7 +172,7 @@ class GoogleAnalyticsGa4CustomStream(GoogleAnalyticsGa4CustomAbstractStream,Incr
             "additionalProperties": True,
             "properties": {
                 "property_name": {"type": ["null", "string"]},
-                "property_id": {"type": ["null", "number"]},
+                "property_id": {"type": ["null", "string"]},
             },
         }
 
