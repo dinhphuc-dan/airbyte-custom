@@ -6,18 +6,12 @@
 from setuptools import find_packages, setup
 
 MAIN_REQUIREMENTS = [
-    "airbyte-cdk~=0.2",
-    "pendulum~=2.1.2",
-    "PyJWT~=2.6.0", 
-    "requests~=2.28.1",
-    "cryptography~=37.0.4"
+    "airbyte-cdk==0.82.0",
+    "cryptography==41.0.7",
+    "PyJWT==2.8.0"
 ]
 
-TEST_REQUIREMENTS = [
-    "pytest~=6.2",
-    "pytest-mock~=3.6.1",
-    "source-acceptance-test",
-]
+TEST_REQUIREMENTS = []
 
 setup(
     name="source_google_analytics_ga4_custom",
