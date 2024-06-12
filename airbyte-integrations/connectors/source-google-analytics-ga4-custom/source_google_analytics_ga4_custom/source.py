@@ -4,7 +4,7 @@
 
 
 from abc import ABC
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple, Union, Dict
+from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple, Union, Dict, Generator
 
 import json
 import datetime
@@ -173,6 +173,7 @@ class GoogleAnalyticsGa4CustomStream(GoogleAnalyticsGa4CustomAbstractStream,Incr
             "properties": {
                 "property_name": {"type": ["null", "string"]},
                 "property_id": {"type": ["null", "string"]},
+                "dataLossFromOtherRow": {"type": ["null", "boolean"]},
             },
         }
 
@@ -438,12 +439,6 @@ class GoogleAnalyticsGa4CustomStream(GoogleAnalyticsGa4CustomAbstractStream,Incr
         """ use to check the orgirinal form of reponse from API """
         # yield response_json 
 
-        """transform the format of API response"""
-        dimensions: list = [header['name'] for header in response_json['dimensionHeaders']]
-        metrics: list = [header['name'] for header in response_json['metricHeaders']]
-
-        result = {}
-
         '''
         response_json in this format
         { 
@@ -465,6 +460,17 @@ class GoogleAnalyticsGa4CustomStream(GoogleAnalyticsGa4CustomAbstractStream,Incr
             ]
         }
         '''
+
+        """transform the format of API response"""
+        dimensions: list = [header['name'] for header in response_json['dimensionHeaders']]
+        metrics: list = [header['name'] for header in response_json['metricHeaders']]
+
+        data_loss = response_json['metadata'].get('dataLossFromOtherRow', False)
+        if data_loss:
+            self.logger.warning("Warning: dataLossFromOtherRow detected, becarefully for using recorded data downstream. To reduce effect of dataLossFromOtherRow, please select less dimensions in report config. For more information: https://developers.google.com/analytics/devguides/reporting/data/v1/rest/v1beta/ResponseMetaData")
+
+        result = {}
+
         for record in response_json.get('rows',[]):
             dimensions_values: list = []
             for value_dict in record['dimensionValues']:
@@ -475,6 +481,8 @@ class GoogleAnalyticsGa4CustomStream(GoogleAnalyticsGa4CustomAbstractStream,Incr
             for value_dict in record['metricValues']:
                 metrics_values.append(value_dict['value'])
             result.update(dict(zip(metrics, metrics_values)))
+
+            result.update({'dataLossFromOtherRow': data_loss})   
             yield result
 
     def read_records(
