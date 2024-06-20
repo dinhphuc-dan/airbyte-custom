@@ -1,0 +1,61 @@
+documentationUrl: https://docsurl.com
+connectionSpecification:
+  $schema: http://json-schema.org/draft-07/schema#
+  title: Snapchat Ads Custom Spec
+  type: object
+  required:
+    - client_id
+    - client_secret
+    - refresh_token
+    - ad_account_id
+    - start_date
+  additionalProperties: true
+  properties:
+    client_id:
+      title: Client ID
+      type: string
+      order: 1
+      description: Your OAuth App client ID in Business Details Tab . See <a href="https://marketingapi.snapchat.com/docs/#authentication">here</a>
+    client_secret:
+      title: Client Secret
+      type: string
+      order: 2
+      description: Your OAuth App client Secret when created in Business Details Tab . See <a href="https://marketingapi.snapchat.com/docs/#authentication">here</a>
+      airbyte_secret: true
+    refresh_token:
+      title: Referesh Token
+      type: string
+      order: 3
+      description: Your refresh token after exchange redirected code. See <a href="https://marketingapi.snapchat.com/docs/#authentication">here</a>
+      airbyte_secret: true
+    ad_account_id:
+      title: Ad Accounts ID
+      order: 4
+      description: Your Ad Accounts ID.
+      type: array
+      items:
+        type: string
+    start_date:
+      title: Start Date
+      type: string
+      order: 5
+      description: Start date in YYYY-MM-DD format.
+      pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+      pattern_descriptor: "YYYY-MM-DD"
+      format: date
+    number_days_backward:
+      title: Number of days backward to get data
+      type: integer
+      order: 6
+      description: Number of days backward to get data for daily incremental sync, default is 7. If you choose Get Last X Days is False, then all incremental streams will get data from date of last sync minus number of days backward.
+    get_last_X_days:
+      title: Get last X days data
+      type: boolean
+      order: 7
+      description: Important** This fuction ignores your Start Date and only Get last X days data for both full-refresh and incremental method, X = Number of days backward. For example, if you fill 7 in Number of days backwards, and choose this option as True, all streams will record last 7 days data from today (according to your timezone setting).
+      default: false
+    timezone:
+      title: Your local timezone
+      type: string
+      order: 8
+      description: Default is UTC, get timezone name in <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">here</a>
