@@ -313,8 +313,6 @@ class SnapchatAdsAdStatsReport(SnapchatAdsCustomBaseStream):
                 "campaign_name": {"type": ["null", "string"]},
                 "ad_account_id": {"type": ["null", "string"]},
                 "country": {"type": ["null", "string"]},
-                "campaignId": {"type": ["null", "number"]},
-                "campaignName": {"type": ["null", "string"]},
 
                  # metrics
                 "impressions":{"type":["null","number"]},
