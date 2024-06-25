@@ -198,6 +198,7 @@ class XAdsTwitterCustomCheckConnection(XAdsTwitterCustomStream):
 
 class XAdsTwitterLocationInfo(XAdsTwitterCustomStream): 
     count = 1000
+    cursor_field = []
 
     @property
     def name(self) -> str:
@@ -218,8 +219,8 @@ class XAdsTwitterLocationInfo(XAdsTwitterCustomStream):
         }
         return params
     
-    # def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
-    #     return [None]
+    def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
+        return []
 
     def get_json_schema(self) -> Mapping[str, Any]:
         full_schema = {
