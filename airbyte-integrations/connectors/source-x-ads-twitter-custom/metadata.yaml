@@ -1,0 +1,25 @@
+data:
+  allowedHosts:
+    hosts:
+      - TODO # Please change to the hostname of the source.
+  registries:
+    oss:
+      enabled: false
+    cloud:
+      enabled: false
+  connectorSubtype: api
+  connectorType: source
+  definitionId: 146a2de6-332b-4bc9-83c4-50d87c3d4837
+  dockerImageTag: 0.1.0
+  dockerRepository: airbyte/source-x-ads-twitter-custom
+  githubIssueLabel: source-x-ads-twitter-custom
+  icon: x-ads-twitter-custom.svg
+  license: MIT
+  name: X Ads Twitter Custom
+  releaseDate: TODO
+  supportLevel: community
+  releaseStage: alpha
+  documentationUrl: https://docs.airbyte.com/integrations/sources/x-ads-twitter-custom
+  tags:
+    - language:python
+metadataSpecVersion: "1.0"

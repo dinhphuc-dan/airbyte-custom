@@ -1,0 +1,103 @@
+documentationUrl: https://docsurl.com
+connectionSpecification:
+  $schema: http://json-schema.org/draft-07/schema#
+  title: X Ads Twitter Custom Spec
+  type: object
+  required:
+    - api_key
+    - api_secret
+    - access_token
+    - access_token_secret
+    - ad_account_id
+    - start_date
+    - placement
+  additionalProperties: True
+  properties:
+    api_key:
+      title: API Key
+      type: string
+      order: 1
+      description: 
+        Your X Ads Developer App API Key at page <a href="https://developer.twitter.com/en/portal/dashboard">X Developers</a>, under Keys and Tokens tab. 
+        See <a href="https://developer.x.com/en/docs/authentication/oauth-1-0a/api-key-and-secret">here</a>
+    api_secret:
+      title: API Secret
+      type: string
+      order: 2
+      description: 
+        Your X Ads Developer App API Key at page <a href="https://developer.twitter.com/en/portal/dashboard">X Developers</a>, under Keys and Tokens tab. 
+        See <a href="https://developer.x.com/en/docs/authentication/oauth-1-0a/api-key-and-secret">here</a>
+      airbyte_secret: true
+    access_token:
+      title: Access Token
+      type: string
+      order: 3
+      description: 
+        Your X Ads Developer App Access Token at page <a href="https://developer.twitter.com/en/portal/dashboard">X Developers</a>, under Keys and Tokens tab.
+        Or if you get data for another account then try to get them as  in <a href="https://developer.x.com/en/docs/authentication/oauth-1-0a/obtaining-user-access-tokens">here</a>
+      airbyte_secret: true
+    access_token_secret:
+      title: Access Token Secret
+      type: string
+      order: 4
+      description: 
+        Your X Ads Developer App Access Token at page <a href="https://developer.twitter.com/en/portal/dashboard">X Developers</a>, under Keys and Tokens tab.
+        Or if you get data for another account then try to get them as  in <a href="https://developer.x.com/en/docs/authentication/oauth-1-0a/obtaining-user-access-tokens">here</a>
+      airbyte_secret: true
+    ad_account_id:
+      title: Ad Accounts ID
+      order: 5
+      description: Your Ad Accounts IDs. You can find it in <a href="https://ads.x.com/">here</a>, then choose tab Account Settings
+      type: array
+      items:
+        type: string
+    start_date:
+      title: Start Date
+      type: string
+      order: 6
+      description: Start date in YYYY-MM-DD format.
+      pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+      pattern_descriptor: "YYYY-MM-DD"
+      format: date
+    number_days_backward:
+      title: Number of days backward to get data
+      type: integer
+      order: 7
+      description: Number of days backward to get data for daily incremental sync, default is 7. If you choose Get Last X Days is False, then all incremental streams will get data from date of last sync minus number of days backward.
+    get_last_X_days:
+      title: Get last X days data
+      type: boolean
+      order: 8
+      description: Important** This fuction ignores your Start Date and only Get last X days data for both full-refresh and incremental method, X = Number of days backward. For example, if you fill 7 in Number of days backwards, and choose this option as True, all streams will record last 7 days data from today (according to your timezone setting).
+      default: false
+    timezone:
+      title: Your local timezone
+      type: string
+      order: 9
+      description: Default is UTC, get timezone name in <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">here</a>
+    location_type:
+      title: Location Type for getting Location Data
+      type: string
+      order: 10
+      description: 
+        Choose your option then we will get a table contains Data about Location from Twitter. 
+        Default is Countries. 
+        See <a href="https://developer.x.com/en/docs/twitter-ads-api/campaign-management/api-reference/targeting-options#get-targeting-criteria-locations">here</a>
+      enum:
+        - COUNTRIES
+        - REGIONS
+        - METROS
+        - CITIES
+        - POSTAL_CODES
+    placement:
+      title: Placement
+      type: string
+      order: 11
+      description: 
+        Choose your option for your Daily Ad Group report
+        Default is All. 
+        See <a href="https://developer.x.com/en/docs/twitter-ads-api/analytics/api-reference/asynchronous">here</a>
+      enum:
+        - ALL_ON_TWITTER
+        - PUBLISHER_NETWORK
+
