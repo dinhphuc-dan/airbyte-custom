@@ -497,6 +497,7 @@ class XAdsTwitterAdGroupsReport(XAdsTwitterCustomStream):
             "required": [],
             "additionalProperties": True,
             "properties": {
+                "ad_account_id": {"type": ["null", "string"]},
                 "adgroup_name": {"type": ["null", "string"]},
                 "product_type": {"type": ["null", "string"]},
                 "adgroup_id": {"type": ["null", "string"]},
