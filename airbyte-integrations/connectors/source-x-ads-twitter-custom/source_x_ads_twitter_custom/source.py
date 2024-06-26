@@ -52,8 +52,11 @@ class XAdsTwitterCustomStream(HttpStream, IncrementalMixin, ABC):
     
     @property
     def state(self) -> Mapping[str, Any]:
+        if self.cursor_field:
         # self.logger.info(f"Cursor Getter {self._cursor_value}")
-        return {self.cursor_field: self._cursor_value}
+            return {self.cursor_field: self._cursor_value}
+        else: 
+            return {}
 
     @state.setter
     def state(self, value: Mapping[str, Any]):
@@ -220,7 +223,7 @@ class XAdsTwitterLocationInfo(XAdsTwitterCustomStream):
         return params
     
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
-        return []
+        return [None]
 
     def get_json_schema(self) -> Mapping[str, Any]:
         full_schema = {
