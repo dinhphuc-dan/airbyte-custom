@@ -157,7 +157,7 @@ class XAdsTwitterCustomStream(HttpStream, IncrementalMixin, ABC):
         stream_state: Mapping[str, Any] = None,
     ) -> Iterable[Mapping[str, Any]]:
         records = super().read_records(sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state)
-        if stream_state:
+        if self.cursor_field:
             for record in records:
                 record_cursor_value: datetime.date = pendulum.parse(record[self.cursor_field]).date()
                 self._cursor_value: datetime.date = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
