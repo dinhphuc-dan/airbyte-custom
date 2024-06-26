@@ -403,7 +403,7 @@ class XAdsTwitterHandleJobStatus(XAdsTwitterLineItemsCreateAsynchronousJobs):
     @property
     def max_time(self) -> Union[int, None]:
         """ Override if needed. Specifies maximum total waiting time (in seconds) for backoff policy. Return None for no limit."""
-        return None
+        return 3600
     
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         ''' rewrite to get job id '''
@@ -451,12 +451,14 @@ class XAdsTwitterAdGroupsReport(XAdsTwitterCustomStream):
         end_time = pendulum.parse(stream_slice['end_time'])
         date_diff = (end_time - start_time).days
 
+        print(stream_slice)
+
         line_items = stream_slice['line_items']
         
         if response_json.get('data'): 
             for entity_id in response_json['data']:
                 result = {}
-                
+                result.update({'ad_account_id': stream_slice['ad_account_id']})
                 # getting extra info about adgroup's name, its campaign or accounts
                 for item in line_items:
                     if item['adgroup_id'] == entity_id['id']:
