@@ -248,7 +248,7 @@ class XAdsTwitterPrepareEntityInfo(XAdsTwitterCustomStream):
     2. prepare request slice based on the 1 above as an input to register job api of Asynchronous Analytics
     https://developer.x.com/en/docs/twitter-ads-api/analytics/api-reference/asynchronous
     '''
-    number_entities_in_one_job = 3
+    number_entities_in_one_job = 20
 
     def __init__(self, account_id ,entity_name ,*args, **kwargs):
         super().__init__(*args, **kwargs)
