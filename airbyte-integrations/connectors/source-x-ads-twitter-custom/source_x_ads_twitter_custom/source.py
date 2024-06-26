@@ -48,7 +48,7 @@ class XAdsTwitterCustomStream(HttpStream, IncrementalMixin, ABC):
     
     @property
     def cursor_field(self) -> Union[str, List[str]]:
-        return "date"
+        return []
     
     @property
     def state(self) -> Mapping[str, Any]:
@@ -157,7 +157,7 @@ class XAdsTwitterCustomStream(HttpStream, IncrementalMixin, ABC):
         stream_state: Mapping[str, Any] = None,
     ) -> Iterable[Mapping[str, Any]]:
         records = super().read_records(sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state)
-        if stream_slice:
+        if stream_state:
             for record in records:
                 record_cursor_value: datetime.date = pendulum.parse(record[self.cursor_field]).date()
                 self._cursor_value: datetime.date = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
@@ -201,7 +201,6 @@ class XAdsTwitterCustomCheckConnection(XAdsTwitterCustomStream):
 
 class XAdsTwitterLocationInfo(XAdsTwitterCustomStream): 
     count = 1000
-    cursor_field = []
 
     @property
     def name(self) -> str:
