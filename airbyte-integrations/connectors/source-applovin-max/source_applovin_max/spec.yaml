@@ -51,6 +51,7 @@ connectionSpecification:
         type: string
         enum:
           - attempts
+          - requests
           - responses
           - impressions
           - estimated_revenue
