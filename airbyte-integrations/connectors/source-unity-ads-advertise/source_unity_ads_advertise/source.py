@@ -11,7 +11,7 @@ from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
 from airbyte_cdk.sources.streams import Stream, IncrementalMixin
 from airbyte_cdk.sources.streams.http import HttpStream
-from airbyte_cdk.sources.streams.http.requests_native_auth import TokenAuthenticator
+from airbyte_cdk.sources.streams.http.requests_native_auth import BasicHttpAuthenticator
 from airbyte_cdk.models import SyncMode
 import pendulum
 import datetime
@@ -19,11 +19,13 @@ from io import StringIO
 import csv
 import pandas as pd
 import numpy as np
+import base64
 
 
 # Basic full refresh stream
 class UnityAdsAdvertiseStream(HttpStream, ABC):
-    url_base = "https://stats.unityads.unity3d.com/organizations/"
+    url_base = "https://services.api.unity.com/advertise/stats/v2/organizations/"
+    primary_key = None
 
     def __init__(self,config:Mapping[str,any] ,*arg,**kwargs):
         super().__init__(*arg, **kwargs)
@@ -51,7 +53,8 @@ class UnityAdsAdvertiseStream(HttpStream, ABC):
     def path(
         self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
     ) -> str:
-        return None
+        organization_id = self.config["organization_id"]
+        return f"{organization_id}/reports/acquisitions"
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         return None
@@ -66,50 +69,25 @@ class UnityAdsAdvertiseStream(HttpStream, ABC):
 
 
 class UnityAdsAdvertiseCheckConnectionStream(UnityAdsAdvertiseStream):
-    primary_key = None
-
-    def path(self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
-    ) -> str:
-        organization_id = self.config["organization_id"]
-        return f"{organization_id}/reports/acquisitions"
 
     def request_params(self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None) -> MutableMapping[str, Any]:
         start_date: str = pendulum.today().subtract(days=1).to_date_string()
         end_date: str = pendulum.today().to_date_string()
-        params = {"start": start_date, "end": end_date, "scale": "day"}
-
-        # params = {
-        #     "start": start_date, 
-        #     "end": end_date, 
-        #     "scale": "day",
-
-        #     "splitBy": "campaign,creativePack,adType,target,store,platform,country,skadConversionValue,osVersion",
-            
-        #     "campaigns": "65698eaad59d1084d25e3133",
-        #     "creativePacks": "656986e46ceb4ea199dedb26",
-        #     # "osVersions": "17.1.2"
-
-        # }
+        params = {"start": start_date, "end": end_date, "scale": "day", "metrics": "spend"}
         return params
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        response_as_string = response.content.decode('utf-8-sig').split('\n')
-        yield {"response": response_as_string}
+        yield response.status_code
 
 
 class UnityAdsAdvertiseIncrementalStream(UnityAdsAdvertiseStream, IncrementalMixin):
-    primary_key = None
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._cursor_value = None
         self.number_days_backward = self.config.get("number_days_backward", 7)
         self.timezone  = self.config.get("timezone", "UTC")
-
-    def path(self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
-    ) -> str:
-        organization_id = self.config["organization_id"]
-        return f"{organization_id}/reports/acquisitions"
+        self.get_last_X_days = self.config.get("get_last_X_days", False)
 
     @property
     def name(self) -> str:
@@ -123,14 +101,18 @@ class UnityAdsAdvertiseIncrementalStream(UnityAdsAdvertiseStream, IncrementalMix
     
     @property
     def state(self) -> Mapping[str, Any]:
-        '''airbyte always starts syncing by checking stream availability, then sets cursor value as your logic at read_records() fucntion''' 
+        if self.cursor_field:
         # self.logger.info(f"Cursor Getter {self._cursor_value}")
-        return {self.cursor_field: self._cursor_value}
+            return {self.cursor_field: self._cursor_value}
+        else: 
+            return {}
     
     @state.setter
     def state(self, value: Mapping[str, Any]):
-        # self.logger.info(f"Cursor Setter Value {value}")
-        self._cursor_value: datetime.date = pendulum.parse(value[self.cursor_field]).add(days=1).date()
+        if value[self.cursor_field] is None:
+            self._cursor_value = pendulum.parse(self.config["start_date"]).date()
+        else:
+            self._cursor_value: datetime.date = pendulum.parse(value[self.cursor_field]).add(days=1).date()
         # self.logger.info(f"Cursor Setter {self._cursor_value}")
     
     def get_json_schema(self) -> Mapping[str, Any]:
@@ -140,24 +122,25 @@ class UnityAdsAdvertiseIncrementalStream(UnityAdsAdvertiseStream, IncrementalMix
             "required": [],
             "properties": {
                 "timestamp": {"type": ["null", "string"],"format": "date-time","airbyte_type": "timestamp_with_timezone"},
-                "target_id": {"type": ["null", "string"]},
-                "target_store_id": {"type": ["null", "string"]},
-                "target_name": {"type": ["null", "string"]},
-                "creative_pack_id": {"type": ["null", "string"]},
-                "creative_pack_name": {"type": ["null", "string"]},
-                "ad_type": {"type": ["null", "string"]},
+                "app_id": {"type": ["null", "string"]},
+                "app_name": {"type": ["null", "string"]},
                 "campaign_id": {"type": ["null", "string"]},
                 "campaign_name": {"type": ["null", "string"]},
                 "country": {"type": ["null", "string"]},
-                "platform": {"type": ["null", "string"]},
+                "creative_pack_id": {"type": ["null", "string"]},
+                "creative_pack_name": {"type": ["null", "string"]},
+                "creative_pack_type": {"type": ["null", "string"]},
                 "os_version": {"type": ["null", "string"]},
+                "platform": {"type": ["null", "string"]},
                 "store": {"type": ["null", "string"]},
-                "SKAd_conversion_value": {"type": ["null", "string"]},
+                "target_id": {"type": ["null", "string"]},
+                "target_name": {"type": ["null", "string"]},
+                "target_store_id": {"type": ["null", "string"]},
                 "starts": {"type": ["null", "number"]},
                 "views": {"type": ["null", "number"]},
                 "clicks": {"type": ["null", "number"]},
                 "installs": {"type": ["null", "number"]},
-                "spend": {"type": ["null", "number"]},
+                "spend": {"type": ["null", "number"]}
             }
         }
         return full_schema
@@ -168,32 +151,28 @@ class UnityAdsAdvertiseIncrementalStream(UnityAdsAdvertiseStream, IncrementalMix
         # data_available_date is the date that the newest data can be accessed
         data_avaliable_date : datetime.date = pendulum.today(self.timezone).date()
         
-        # if stream has stream_state which means it has been run before, so start_date will be subtract X days backwards from last time run
-        if stream_state:
-            # print(f' stream slice, stream state in IF {stream_state}, {self._cursor_value}')
-            start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
-        else:
-            # print(f' stream slice, stream state in ELSE {stream_state}, {self._cursor_value}')
-            start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
-
-        while start_date <= data_avaliable_date:
-            start_date_as_str: str = start_date.to_date_string()
-            if start_date.month == data_avaliable_date.month:
-                end_date_as_str: str = data_avaliable_date.to_date_string()
+        if self.get_last_X_days:
+            start: datetime.date = pendulum.today(self.timezone).subtract(days=self.number_days_backward).date()
+        elif stream_state:
+            start: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
+        else: 
+            start: datetime.date = pendulum.parse(self.config["start_date"]).date()
+        
+        while start < data_avaliable_date:
+            start_as_str: str = start.to_date_string()
+            if start.month == data_avaliable_date.month:
+                end_as_str: str = data_avaliable_date.to_date_string()
                 slice.append({
-                    "start": start_date_as_str,
-                    "end": end_date_as_str
-                    }
-                )
+                    "start": start_as_str,
+                    "end": end_as_str
+                })
             else:
-                end_date_as_str: str = start_date.end_of('month').add(days=1).to_date_string()
-                # due to Unity API return data of day before end_date, so we add 1 day to end_date
+                end_as_str: str = start.end_of("month").add(days=1).to_date_string()
                 slice.append({
-                    "start": start_date_as_str,
-                    "end": end_date_as_str
-                    }
-                )
-            start_date: datetime.date = start_date.add(months=1).start_of('month')
+                    "start": start_as_str,
+                    "end": end_as_str
+                })
+            start: datetime.date = start.add(months=1).start_of('month') 
 
         return slice or [None]
     
@@ -205,10 +184,12 @@ class UnityAdsAdvertiseIncrementalStream(UnityAdsAdvertiseStream, IncrementalMix
     ) -> MutableMapping[str, Any]:
         params = {
             "scale": "day",
-            "splitBy": "creativePack,adType,campaign,target,store,country,platform,osVersion,skadConversionValue",
+            "metrics": "starts,views,clicks,installs,spend",
+            "breakdowns": "app,campaign,country,creativePack,creativePackType,osVersion,platform,store,targetGame"
         }
-        self.logger.info(f"Slice in params {stream_slice}")
+        
         params.update(stream_slice)
+        self.logger.info(f"Slice in params {stream_slice}")
         return params
 
     def read_records(
@@ -248,26 +229,24 @@ class UnityAdsAdvertiseIncrementalStream(UnityAdsAdvertiseStream, IncrementalMix
         After that, we load file object to pandas frame and rename column
         Finally, we yield records by using to_dict() of pandas data frame
         '''
-        # load response to pandas data frame
-        df = pd.read_csv(StringIO(response_as_string))
-        # rename column
-        df.rename(columns=lambda x: x.replace(' ','_'), inplace=True)
-        # replace Nan value, Infinity as None
-        df.replace([np.nan,np.inf,-np.inf], None, inplace=True)
-        # two below column tend to get INT, so we make sure they both are string
-        df = df.astype({
-            'target_id': str,
-            'target_store_id': str,
-            'SKAd_conversion_value': str
-        })
-        for record in df.to_dict(orient='records'):
-            yield record
+        if response_as_string: 
+            # load response to pandas data frame
+            df = pd.read_csv(StringIO(response_as_string))
+            # rename column
+            df.rename(columns=lambda x: x.replace(' ','_'), inplace=True)
+            # replace Nan value, Infinity as None
+            df.replace([np.nan,np.inf,-np.inf], None, inplace=True)
+
+            for record in df.to_dict(orient='records'):
+                yield record
+        else:
+            return {}
 
 # Source
 class SourceUnityAdsAdvertise(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
         try:
-            auth = TokenAuthenticator(token=config["api_key"])
+            auth = BasicHttpAuthenticator(username=config["key_id"], password=config["secret_key"])
             logger.info(f"load auth {auth}")
             check_connection_steam = UnityAdsAdvertiseCheckConnectionStream(authenticator = auth, config=config) 
             logger.info(f"Successfully build {check_connection_steam}")
@@ -282,6 +261,6 @@ class SourceUnityAdsAdvertise(AbstractSource):
             return False
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
-        auth = TokenAuthenticator(token=config["api_key"])
+        auth = BasicHttpAuthenticator(username=config["key_id"], password=config["secret_key"])
         stream = UnityAdsAdvertiseIncrementalStream(authenticator = auth, config=config)
         return [stream]
