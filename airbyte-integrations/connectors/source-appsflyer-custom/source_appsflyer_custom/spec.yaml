@@ -8,6 +8,7 @@ connectionSpecification:
     - start_date
     - chunk_date_range
     - timezone
+    - list_apps
   properties:
     api_key:
       title: API Key
@@ -29,24 +30,34 @@ connectionSpecification:
       order: 3
       description: Since Number of Row per report per call get a maximum of 1,000,000 rows, you should calculate average days per chunk which makes report rows <= 1,000,000 by using Event Count in your Activity Dashboard. Default is 10
       minimum: 0
-      default: 10
-    number_days_backward:
-      title: For Incremental Run - Number of days backward to get data
-      type: integer
+      default: 15
+    list_apps:
+      title: List Apps ID in AppsFlyer
+      description: List Packages or Applications to call data. Android example com.myapp, iOS example id1234567890
+      type: array
       order: 4
-      description: Number of days backward to get data for daily incremental sync, default is 2. If you choose Get Last X Days is False, then all incremental streams will get data from date of last sync minus number of days backward.
-      minimum: 1
-      default: 2
-    get_last_X_days:
-      title: Get last X days data
-      type: boolean
-      order: 5
-      description: Important** This fuction ignores your Start Date and only Get last X days data for both full-refresh and incremental method, X = Number of days backward. For example, if you fill 7 in Number of days backwards, and choose this option as True, all streams will record last 7 days data from today (UTC Time). 
-      default: false
+      items:
+        type: string
     timezone:
       title: Timezone
       type: string
-      order: 6
+      order: 5
       description: Timezone same as your AppsFlyer Setting Timezone. Default is UTC. See <a href="https://dev.appsflyer.com/hc/reference/get_app-id-ad-revenue-raw-v5">here</a>
+    get_last_X_days:
+      title: Get last X days data
+      type: boolean
+      order: 6
+      description: Important** This fuction ignores your Start Date and only Get last X days data for both full-refresh and incremental method, X = Number of days backward. For example, if you fill 7 in Number of days backwards, and choose this option as True, all streams will record last 7 days data from today (UTC Time). 
+      default: false
+    number_days_backward:
+      title: For Incremental Run - Number of days backward to get data
+      type: integer
+      order: 7
+      description: Number of days backward to get data for daily incremental sync, default is 2. If you choose Get Last X Days is False, then all incremental streams will get data from date of last sync minus number of days backward.
+      minimum: 1
+      default: 2
+    
+    
+    
    
     

@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple, Union
 
 import requests
@@ -12,46 +12,43 @@ import pandas as pd
 import numpy as np
 
 
-class AppsFlyerAdRevenueRawNonOrganic(AppsflyerCustomStream, IncrementalMixin):
-    primary_key = None
+class AppsFlyerRawReportsBase(AppsflyerCustomStream, IncrementalMixin, ABC):
     _cursor_value: date = None
 
-    def __init__(self, app_id, app_name, **kwargs):
+    def __init__(self, app_id, **kwargs):
         super().__init__(**kwargs)
         self.app_id = app_id
-        self.app_name = app_name
         self.number_days_backward = self.config.get("number_days_backward", 2)
         self.chunk_date_range = self.config.get("chunk_date_range", 10)
-        self.timezone  = self.config.get("timezone", "UTC")
+        self.timezone = self.config.get("timezone", "UTC")
         self.get_last_X_days = self.config.get("get_last_X_days", False)
 
     @property
     def name(self) -> str:
-        """Override method to get stream name according to each app name with suffix Ad Revenue Raw Non Organic """
-        suffix = "_AdRevenueRawNonOrganic"
-        stream_name = self.app_id + suffix
+        stream_name = self.app_id + self.suffix
         return stream_name
-    
+
     @property
     def cursor_field(self) -> Union[str, List[str]]:
         return "event_time"
-    
+
     @property
     def state(self) -> Mapping[str, Any]:
-        '''airbyte always starts syncing by checking stream availability, then sets cursor value as your logic at read_records() fucntion''' 
+        """airbyte always starts syncing by checking stream availability, then sets cursor value as your logic at read_records() fucntion"""
         # self.logger.info(f"Cursor Getter {self._cursor_value}")
         return {self.cursor_field: self._cursor_value}
-    
+
     @state.setter
     def state(self, value: Mapping[str, Any]):
         self._cursor_value: date = pendulum.parse(value[self.cursor_field]).add(days=1).date()
         # self.logger.info(f"Cursor Setter {self._cursor_value}")
-    
+
+    @abstractmethod
     def path(
-        self ,stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
+        self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
     ) -> str:
-        return f"raw-data/export/app/{self.app_id}/ad_revenue_raw/v5"
-    
+        """return the path for the stream"""
+
     def request_headers(
         self,
         stream_state: Optional[Mapping[str, Any]],
@@ -61,28 +58,27 @@ class AppsFlyerAdRevenueRawNonOrganic(AppsflyerCustomStream, IncrementalMixin):
         """
         Require by AppsFlyer
         """
-        header = {"accept":"text/csv"}
+        header = {"accept": "text/csv"}
         return header
-    
+
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         slice: list = []
-        
-        # data_available_date is the date that the newest data can be accessed
-        data_avaliable_date : date = pendulum.today(self.timezone).subtract(days=2).date()
 
-        
+        # data_available_date is the date that the newest data can be accessed
+        data_avaliable_date: date = pendulum.today(self.timezone).subtract(days=2).date()
+
         if self.get_last_X_days:
-            '''' this code for all kind of run, such as: the first time run or full refresh or incremental run, the stream will start with today date minus number_days_backward'''
+            """' this code for all kind of run, such as: the first time run or full refresh or incremental run, the stream will start with today date minus number_days_backward"""
             start_date: datetime.date = pendulum.today(self.timezone).subtract(days=self.number_days_backward).date()
             # self.logger.info(f"stream slice start date in IF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
 
         elif stream_state:
-            ''' this code for incremental run and get_last_X_days is false, the stream will start with the last date of stream state minus number_days_backward'''
+            """this code for incremental run and get_last_X_days is false, the stream will start with the last date of stream state minus number_days_backward"""
             start_date: datetime.date = self.state[self.cursor_field].subtract(days=self.number_days_backward)
             # self.logger.info(f"stream slice start date in ELIF {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
 
-        else: 
-            '''' this code for the first time run or full refresh run, the stream will start with the start date in config'''
+        else:
+            """' this code for the first time run or full refresh run, the stream will start with the start date in config"""
             start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
             # self.logger.info(f"stream slice start date in ELSE {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
 
@@ -91,19 +87,21 @@ class AppsFlyerAdRevenueRawNonOrganic(AppsflyerCustomStream, IncrementalMixin):
             if (data_avaliable_date - start_date).days >= self.chunk_date_range:
                 end_date: date = start_date.add(days=self.chunk_date_range)
                 end_date_as_str: str = end_date.to_date_string()
-                slice.append({
-                    "from": start_date_as_str,
-                    "to": end_date_as_str,
-                    "maximum_rows": 1000000,
+                slice.append(
+                    {
+                        "from": start_date_as_str,
+                        "to": end_date_as_str,
+                        "maximum_rows": 1000000,
                     }
                 )
             else:
                 end_date: date = data_avaliable_date
                 end_date_as_str: str = end_date.to_date_string()
-                slice.append({
-                    "from": start_date_as_str,
-                    "to": end_date_as_str,
-                    "maximum_rows": 1000000,
+                slice.append(
+                    {
+                        "from": start_date_as_str,
+                        "to": end_date_as_str,
+                        "maximum_rows": 1000000,
                     }
                 )
             start_date: date = end_date.add(days=1)
@@ -111,10 +109,7 @@ class AppsFlyerAdRevenueRawNonOrganic(AppsflyerCustomStream, IncrementalMixin):
         return slice or [None]
 
     def request_params(
-        self, 
-        stream_state: Mapping[str, Any], 
-        stream_slice: Mapping[str, any] = None, 
-        next_page_token: Mapping[str, Any] = None
+        self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
         params = {
             "additional_fields": "store_reinstall,impressions,contributor3_match_type,gp_click_time,match_type,mediation_network,oaid,deeplink_url,blocked_reason,blocked_sub_reason,gp_broadcast_referrer,gp_install_begin,custom_data,rejected_reason,device_download_time,keyword_match_type,contributor1_match_type,contributor2_match_type,device_model,monetization_network,segment,is_lat,gp_referrer,blocked_reason_value,store_product_page,device_category,rejected_reason_value,ad_unit,keyword_id,placement,network_account_id,install_app_store,amazon_aid",
@@ -122,7 +117,7 @@ class AppsFlyerAdRevenueRawNonOrganic(AppsflyerCustomStream, IncrementalMixin):
         self.logger.info(f"Slice in params {self.name} {stream_slice}")
         params.update(stream_slice)
         return params
-    
+
     def read_records(
         self,
         sync_mode: SyncMode,
@@ -140,20 +135,20 @@ class AppsFlyerAdRevenueRawNonOrganic(AppsflyerCustomStream, IncrementalMixin):
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         self.logger.info(f"Status code in Parse Response {response.status_code}")
-        response_as_string = response.content.decode('utf-8-sig')
-        '''
+        response_as_string = response.content.decode("utf-8-sig")
+        """
         First, we convert response text to string by decoding utf-8-sig
         Then, we covert response string to a file object using StringIO
         After that, we load file object to pandas frame and rename column
         Finally, we yield records by using to_dict() of pandas data frame
-        '''
+        """
         # load response to pandas data frame
         df = pd.read_csv(StringIO(response_as_string))
         # rename column
-        df.rename(columns=lambda x: x.replace(' ','_').lower(), inplace=True)
+        df.rename(columns=lambda x: x.replace(" ", "_").lower(), inplace=True)
         # replace Nan value as None
         df.replace(np.nan, None, inplace=True)
-        for record in df.to_dict(orient='records'):
+        for record in df.to_dict(orient="records"):
             yield record
 
     def get_json_schema(self) -> Mapping[str, Any]:
@@ -275,7 +270,43 @@ class AppsFlyerAdRevenueRawNonOrganic(AppsflyerCustomStream, IncrementalMixin):
                 "blocked_reason_value": {"type": ["null", "string"]},
                 "rejected_reason": {"type": ["null", "string"]},
                 "rejected_reason_value": {"type": ["null", "string"]},
-                "custom_data": {"type": ["null", "string"]},  
-            }
+                "custom_data": {"type": ["null", "string"]},
+            },
         }
         return full_schema
+
+
+class AppsFlyerAdRevenueRawNonOrganic(AppsFlyerRawReportsBase):
+    suffix = "_AdRevenueRawNonOrganic"
+
+    def path(
+        self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
+    ) -> str:
+        return f"raw-data/export/app/{self.app_id}/ad_revenue_raw/v5"
+
+
+class AppsFlyerAdRevenueRawOrganic(AppsFlyerRawReportsBase):
+    suffix = "_AdRevenueRawOrganic"
+
+    def path(
+        self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
+    ) -> str:
+        return f"raw-data/export/app/{self.app_id}/ad_revenue_organic_raw/v5"
+
+
+class AppsFlyerIAPRawNonOrganic(AppsFlyerRawReportsBase):
+    suffix = "_IAPRawNonOrganic"
+
+    def path(
+        self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
+    ) -> str:
+        return f"raw-data/export/app/{self.app_id}/in_app_events_report/v5?"
+
+
+class AppsFlyerIAPRawOrganic(AppsFlyerRawReportsBase):
+    suffix = "_IAPRawOrganic"
+
+    def path(
+        self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
+    ) -> str:
+        return f"raw-data/export/app/{self.app_id}/organic_in_app_events_report/v5?"
