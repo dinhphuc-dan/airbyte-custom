@@ -126,6 +126,7 @@ class AppsFlyerAggregatedReportsBase(AppsflyerCustomStream, IncrementalMixin, AB
         for record in records:
             record_cursor_value: date = pendulum.parse(record[self.cursor_field]).date()
             self._cursor_value: date = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
+            record.update({"app_id": stream_slice["app_id"]})
             yield record
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
@@ -194,6 +195,7 @@ class AppsFlyerAggregatedDailyReport(AppsFlyerAggregatedReportsBase):
                 "agency_pmd_af_prt": {"type": ["null", "string"]},
                 "media_source_pid": {"type": ["null", "string"]},
                 "campaign_c": {"type": ["null", "string"]},
+                "app_id": {"type": ["null", "string"]},
                 "impressions": {"type": ["null", "number"]},
                 "clicks": {"type": ["null", "number"]},
                 "ctr": {"type": ["null", "number"]},
@@ -229,6 +231,7 @@ class AppsFlyerAggregatedGeoDailyReport(AppsFlyerAggregatedReportsBase):
                 "agency_pmd_af_prt": {"type": ["null", "string"]},
                 "media_source_pid": {"type": ["null", "string"]},
                 "campaign_c": {"type": ["null", "string"]},
+                "app_id": {"type": ["null", "string"]},
                 "impressions": {"type": ["null", "number"]},
                 "clicks": {"type": ["null", "number"]},
                 "ctr": {"type": ["null", "number"]},
@@ -269,6 +272,7 @@ class AppsFlyerAggregatedPartnersDailyReport(AppsFlyerAggregatedReportsBase):
                 "agency_pmd_af_prt": {"type": ["null", "string"]},
                 "media_source_pid": {"type": ["null", "string"]},
                 "campaign_c": {"type": ["null", "string"]},
+                "app_id": {"type": ["null", "string"]},
                 "impressions": {"type": ["null", "number"]},
                 "clicks": {"type": ["null", "number"]},
                 "ctr": {"type": ["null", "number"]},
