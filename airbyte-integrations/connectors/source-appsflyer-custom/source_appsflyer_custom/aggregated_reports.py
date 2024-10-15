@@ -107,10 +107,7 @@ class AppsFlyerAggregatedReportsBase(AppsflyerCustomStream, IncrementalMixin, AB
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
         self.logger.info(f"Slice in params {self.name} {stream_slice}")
-        params = {
-            "from": stream_slice["from"],
-            "to": stream_slice["to"],
-        }
+        params = {"from": stream_slice["from"], "to": stream_slice["to"], "timezone": self.timezone}
         return params
 
     def read_records(
