@@ -1,0 +1,25 @@
+data:
+  allowedHosts:
+    hosts:
+      - TODO # Please change to the hostname of the source.
+  registries:
+    oss:
+      enabled: false
+    cloud:
+      enabled: false
+  connectorSubtype: api
+  connectorType: source
+  definitionId: c491a28f-4888-4c0a-9ee6-ae5cbecb834c
+  dockerImageTag: 0.1.0
+  dockerRepository: airbyte/source-facebook-ads
+  githubIssueLabel: source-facebook-ads
+  icon: facebook-ads.svg
+  license: MIT
+  name: Facebook Ads
+  releaseDate: TODO
+  supportLevel: community
+  releaseStage: alpha
+  documentationUrl: https://docs.airbyte.com/integrations/sources/facebook-ads
+  tags:
+    - language:python
+metadataSpecVersion: "1.0"
