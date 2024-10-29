@@ -1,0 +1,19 @@
+documentationUrl: https://docsurl.com
+connectionSpecification:
+  $schema: http://json-schema.org/draft-07/schema#
+  title: Content Server By Trangntt Spec
+  type: object
+  required:
+    - access_token
+    - list_package_name
+  properties:
+    access_token:
+      type: string
+      description: Access token used to retrieve data from the server of Volio backend. You need login to this link <a
+        href="https://stores.volio.vn/stores/api/v5.0/public/api-docs/index.html#/Auth/post_stores_api_v5_0_auth_login">here</a> to get access token. After 30 days, this access token will be expired and you need to login again to get new access token. 
+      airbyte_secret: true
+    list_package_name:
+      type: array
+      description: List of packages name to identify list apps. Get package name from <a
+        href="https://apps.volio.vn/store">here</a>.
+    

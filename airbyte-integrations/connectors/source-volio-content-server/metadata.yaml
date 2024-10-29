@@ -1,0 +1,25 @@
+data:
+  allowedHosts:
+    hosts:
+      - TODO # Please change to the hostname of the source.
+  registries:
+    oss:
+      enabled: false
+    cloud:
+      enabled: false
+  connectorSubtype: api
+  connectorType: source
+  definitionId: d649e731-e9cc-4a4c-b0df-4a9e202b5bf7
+  dockerImageTag: 0.1.0
+  dockerRepository: airbyte/source-content-server-by-trangntt
+  githubIssueLabel: source-content-server-by-trangntt
+  icon: content-server-by-trangntt.svg
+  license: MIT
+  name: Content Server By Trangntt
+  releaseDate: TODO
+  supportLevel: community
+  releaseStage: alpha
+  documentationUrl: https://docs.airbyte.com/integrations/sources/content-server-by-trangntt
+  tags:
+    - language:python
+metadataSpecVersion: "1.0"

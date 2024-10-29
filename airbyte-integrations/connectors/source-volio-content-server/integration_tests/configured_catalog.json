@@ -1,0 +1,39 @@
+{
+  "streams": [
+    {
+      "stream": {
+        "name": "com_callscreen_colorphone_calltheme_callscreener_callerscreenapp",
+        "json_schema": {
+          "$schema": "http://json-schema.org/draft-04/schema#",
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "item_old_id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "category_id": {
+              "type": "string"
+            }, 
+            "category_old_id": {
+              "type": "string"
+            }, 
+            "category_name": {
+              "type": "string"
+            }, 
+            "url": {
+              "type": "string"
+            }
+          }
+        },
+        "supported_sync_modes": ["full_refresh", "incremental"]
+      },
+      "sync_mode": "full_refresh",
+      "destination_sync_mode": "overwrite"
+    }
+  ]
+}
