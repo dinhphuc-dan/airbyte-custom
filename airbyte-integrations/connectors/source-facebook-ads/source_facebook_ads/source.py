@@ -122,8 +122,8 @@ class FacebookAdsStream(HttpStream, IncrementalMixin, ABC):
         when they see too many requests, this api can
         - get 400 error with sub code as 100
         - get 500 error with sub code as 2
+        - get 400 error with sub code as 80000, 80003, 80004, 80014
         """
-
         if (
             response.status_code == 400
             and "error" in response.json()
@@ -137,6 +137,15 @@ class FacebookAdsStream(HttpStream, IncrementalMixin, ABC):
         elif response.status_code == 500 and "error" in response.json() and response.json()["error"]["code"] == 2:
             self._back_off_time = 60
             self._error_message = f"API reached limit with error 500, sub code 2. Pause for {self._back_off_time} second"
+            self.custom_backoff = True
+            return True
+        elif (
+            response.status_code == 400 and "error" in response.json() and response.json()["error"]["code"] in (80000, 80003, 80004, 80014)
+        ):
+            self._back_off_time = 10
+            self._error_message = (
+                f"API reached limit with error 400, sub code {response.json()['error']['code']}. Pause for {self._back_off_time} second"
+            )
             self.custom_backoff = True
             return True
         else:
@@ -153,6 +162,20 @@ class FacebookAdsStream(HttpStream, IncrementalMixin, ABC):
             return self._error_message
         else:
             return super().error_message(response=response)
+
+    @property
+    def max_retries(self) -> Union[int, None]:
+        """
+        Override if needed. Specifies maximum amount of retries for backoff policy. Return None for no limit.
+        """
+        return None
+
+    @property
+    def max_time(self) -> Union[int, None]:
+        """
+        Override if needed. Specifies maximum total waiting time (in seconds) for backoff policy. Return None for no limit.
+        """
+        return None
 
 
 class FacebookAdsCheckConnection(FacebookAdsStream):
@@ -328,7 +351,7 @@ class FacebookAdsAsynchronousCreateJob(FacebookAdsStream):
         # we add a uuid to each jobs so that we can retry failed jobs
         record = {
             "job_id": response.json().get("report_run_id"),
-            "job_info": (
+            "job_account_id_and_time_range": (
                 str(self._request_slice["ad_account_id"])
                 + ", "
                 + str(self._request_slice["time_range[since]"])
@@ -368,7 +391,6 @@ class FacebookAdsAsynchronousCheckJobStatus(FacebookAdsAsynchronousCreateJob):
 
 
 class FacebookAdsAsynchronousStream(FacebookAdsSynchronousStream):
-
     def path(
         self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
     ) -> str:
@@ -381,6 +403,7 @@ class FacebookAdsAsynchronousStream(FacebookAdsSynchronousStream):
         params = FacebookAdsStream.request_params(self, stream_state, stream_slice, next_page_token)
         if next_page_token:
             params.update({"after": next_page_token})
+        self.logger.debug(f"Get data from job {stream_slice}, params: {params.get('after')}")
         return params
 
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Mapping[str, Any] | None]:
@@ -439,8 +462,8 @@ class FacebookAdsAsynchronousStream(FacebookAdsSynchronousStream):
                     elif job_status["async_status"] == "Job Completed":
                         list_completed_jobs_as_set.add(job_status["id"])
                     else:
-                        # we wait 3 seconds then check again
-                        time.sleep(3)
+                        # we wait 5 seconds then check again
+                        time.sleep(5)
             self.logger.info(
                 f"Total jobs: {len(list_jobs)}, Failed jobs {len(list_retry_jobs_id_as_set)}, Completed jobs {len(list_completed_jobs_as_set)}"
             )
