@@ -9,7 +9,7 @@ connectionSpecification:
   properties:
     api_key:
       title: API Key
-      description: Your API Report Key, for ex, Hyfi8Mkct…WiWP466a1VBL7eUfUlD9JBh
+      description: Your API Report Key, for ex, H1VBL7eUfUlD9JBh
       order: 0
       type: string
       airbyte_secret: true
@@ -71,8 +71,14 @@ connectionSpecification:
     timezone:
       title: Your local timezone
       type: string
-      order: 6
+      order: 7
       description: Default is UTC, get timezone name in <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">here</a>
+    get_hourly_data:
+      title: Get hourly data
+      type: boolean
+      order: 6
+      description: Default this source syns daily data, if you choose this option as True, data will be get by hourly (maximum 30 days from today).
+      default: false
 
 
 

@@ -2,15 +2,6 @@
   "streams": [
     {
       "stream": {
-        "name": "Custom_Report",
-        "json_schema": {},
-        "supported_sync_modes": ["full_refresh", "incremental"]
-      },
-      "sync_mode": "full_refresh",
-      "destination_sync_mode": "overwrite"
-    },
-    {
-      "stream": {
         "name": "Full_Report",
         "json_schema": {},
         "supported_sync_modes": ["full_refresh", "incremental"]
