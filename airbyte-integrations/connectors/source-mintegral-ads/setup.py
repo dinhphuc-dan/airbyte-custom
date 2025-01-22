@@ -5,16 +5,9 @@
 
 from setuptools import find_packages, setup
 
-MAIN_REQUIREMENTS = [
-    "airbyte-cdk==0.51.41",
-]
+MAIN_REQUIREMENTS = ["airbyte-cdk==0.51.41", "pandas==2.1.0", "numpy==1.26.4"]
 
-TEST_REQUIREMENTS = [
-    "requests-mock~=1.9.3",
-    "pytest~=6.2",
-    "pytest-mock~=3.6.1",
-    "connector-acceptance-test",
-]
+TEST_REQUIREMENTS = []
 
 setup(
     name="source_mintegral_ads",
