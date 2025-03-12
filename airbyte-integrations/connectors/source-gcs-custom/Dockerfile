@@ -1,37 +1,22 @@
-FROM python:3.10.0-alpine3.15 as base
+FROM python:3.10.0-slim
 
-# build and load all requirements
-FROM base as builder
 WORKDIR /airbyte/integration_code
 
-# upgrade pip to the latest version
-RUN apk --no-cache upgrade \
+# upgrade pip to the latest version, install timezone and bash
+RUN apt-get update \
     && pip install --upgrade pip \
-    && apk --no-cache add tzdata build-base
-
-
-COPY setup.py ./
-# install necessary packages to a temporary folder
-RUN pip install --prefix=/install .
-
-# build a clean environment
-FROM base
-WORKDIR /airbyte/integration_code
-
-# copy all loaded and built libraries to a pure basic image
-COPY --from=builder /install /usr/local
-# add default timezone settings
-COPY --from=builder /usr/share/zoneinfo/Etc/UTC /etc/localtime
-RUN echo "Etc/UTC" > /etc/timezone
-
-# bash is installed for more convenient debugging.
-RUN apk --no-cache add bash
-
-# copy payload code only
-COPY main.py ./
-COPY source_gcs_custom ./source_gcs_custom
+    && apt-get install tzdata -y \
+    && apt-get install bash -y
 
 ENV AIRBYTE_ENTRYPOINT "python /airbyte/integration_code/main.py"
+
+# install necessary packages
+COPY setup.py ./
+COPY main.py ./
+COPY source_gcs_custom ./source_gcs_custom
+RUN pip install .
+
+
 ENTRYPOINT ["python", "/airbyte/integration_code/main.py"]
 
 LABEL io.airbyte.version=0.1.0

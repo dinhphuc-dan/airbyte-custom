@@ -87,6 +87,7 @@ class SourceGCSCustomStreamReader(AbstractFileBasedStreamReader):
                     pendulum.from_format(self.config.start_date, self.START_DATE_FORMAT) if self.config and self.config.start_date else None
                 )
 
+            final_globs = list(set(final_globs))
             logger.info(f'GLOBS: {final_globs}')
             for glob in final_globs:
                 bucket: storage.Bucket = self.gcs_client.get_bucket(self.config.gcs_bucket)

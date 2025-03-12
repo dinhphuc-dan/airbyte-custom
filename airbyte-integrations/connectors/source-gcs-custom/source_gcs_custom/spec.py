@@ -44,7 +44,7 @@ class SourceGCSCustomSpec(AbstractFileBasedSpec):
 
     search_date_in_file_name: Optional[SearchDateInFileName] = Field(
         title="Scan only file has date in file name",
-        description="Scan only file has date in last X days (X defined below), to reduce ammount of time scan files and read files when bucket contains a myriad of files. Start date will be ignored when this option is enabled.",
+        description="An custom object for search date in file's name, to avoid scan all files in bucket",
         order=4,
     )
 
@@ -54,6 +54,21 @@ class SourceGCSCustomSpec(AbstractFileBasedSpec):
         Returns the documentation URL.
         """
         return AnyUrl("https://docs.airbyte.com/integrations/sources/gcs", scheme="https")
+    
+    @staticmethod
+    def replace_enum_allOf_and_anyOf(schema):
+        """
+        Field search_date_in_file_name is defined as allOf by pyndatics, which cannot show in airbyte UI
+        Therefore, we have to remove allOf from pyndatics, and switch to schema that airbyte can understand
+        """
+        objects_to_check = schema["properties"]["search_date_in_file_name"]
+        objects_old_title = objects_to_check["title"]
+        property_object = objects_to_check['allOf'][0]
+        objects_to_check.update(property_object)
+        objects_to_check.pop("allOf")
+        objects_to_check["title"]=objects_old_title
+
+        return super(SourceGCSCustomSpec, SourceGCSCustomSpec).replace_enum_allOf_and_anyOf(schema)
 
 
     

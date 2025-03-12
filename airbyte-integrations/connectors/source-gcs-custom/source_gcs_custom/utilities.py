@@ -11,20 +11,24 @@ import pendulum
 # additional class for spec to search date in file name instead of call all files in bucket
 class SearchDateInFileName(BaseModel):
     get_last_x_days_files_based_on_date_in_file_name: bool = Field(
-        description="Get last x days files based on date in file's name. X will be defined by field number of days backward to get data below",
-        default=False
+        description="Scan only file has date value in its name and that value in last X days (X defined below), to reduce ammount of time scan files and read files when bucket contains a myriad of files. Start Date and Days to Sync will be ignored when this option is enabled.",
+        default=False,
+        order=1
     )
     number_days_backward: int = Field(
         description="Number of days backward to get data",
-        default=7
+        default=7,
+        order=2
     )
     date_in_file_name_format: str = Field(
-        description="Date in file's name format",
-        default='YYYY-MM-DD'
+        description="Date in file's name format. Follow pendulum format at <a href='https://pendulum.eustace.io/docs/#tokens'>here</a>",
+        default='YYYY-MM-DD',
+        order=3
     )
     timezone: str = Field(
         description="Date in file's name timezone. Default is UTC, get timezone name in <a href='https://en.wikipedia.org/wiki/List_of_tz_database_time_zones'>here</a>",
-        default='UTC'
+        default='UTC',
+        order=4
     )
 
 # class re-define the RemoteFile in airbyte cdk 
