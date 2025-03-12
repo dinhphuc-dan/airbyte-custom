@@ -32,20 +32,10 @@ class SourceGCSCustomSpec(AbstractFileBasedSpec):
         order=2,
     )
 
-    start_date: Optional[str] = Field(
-        title="Start Date",
-        description="UTC date and time in the format 2017-01-25T00:00:00. Any file modified before this date will not be replicated.",
-        examples=["2025-01-01T00:00:00"],
-        format="date-time",
-        pattern="^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}$",
-        pattern_descriptor="YYYY-MM-DDTHH:mm:ss",
-        order=3,
-    )
-
     search_date_in_file_name: Optional[SearchDateInFileName] = Field(
         title="Scan only file has date in file name",
         description="An custom object for search date in file's name, to avoid scan all files in bucket",
-        order=4,
+        order=3,
     )
 
     @classmethod

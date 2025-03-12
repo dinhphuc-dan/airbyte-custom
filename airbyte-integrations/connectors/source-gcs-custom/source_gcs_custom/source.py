@@ -10,6 +10,7 @@ from datetime import timedelta, date
 import pendulum
 import json
 import zipfile
+from datetime import datetime
 
 from airbyte_cdk.sources.file_based.file_based_stream_reader import AbstractFileBasedStreamReader, FileReadMode
 from airbyte_cdk.sources.file_based.remote_file import RemoteFile
@@ -28,7 +29,6 @@ import smart_open
 import requests
 
 class SourceGCSCustomStreamReader(AbstractFileBasedStreamReader):
-    START_DATE_FORMAT = "YYYY-MM-DDTHH:mm:ss"
     """
     Stream reader for Google Cloud Storage Custom.
     """
@@ -83,10 +83,8 @@ class SourceGCSCustomStreamReader(AbstractFileBasedStreamReader):
                 
             else: 
                 final_globs = user_defined_globs
-                start_date: date = (
-                    pendulum.from_format(self.config.start_date, self.START_DATE_FORMAT) if self.config and self.config.start_date else None
-                )
-
+                start_date = pendulum.instance(datetime.strptime(self.config.start_date, self.DATE_TIME_FORMAT) if self.config and self.config.start_date else None)
+                
             final_globs = list(set(final_globs))
             logger.info(f'GLOBS: {final_globs}')
             for glob in final_globs:
