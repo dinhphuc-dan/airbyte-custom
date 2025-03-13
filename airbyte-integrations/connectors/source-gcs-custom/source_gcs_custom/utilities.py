@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, Iterable
+from typing import Optional, Iterable, Union
 from pydantic import BaseModel, Field
 from google.cloud import storage
 import tempfile
@@ -15,20 +15,25 @@ class SearchDateInFileName(BaseModel):
         default=False,
         order=1
     )
-    number_days_backward: int = Field(
-        description="Number of days backward to get data",
-        default=7,
+    backward_type: str = Field(
+        description="determine backward type. Possible value: hour, day and month",
+        default="day",
         order=2
+    )
+    number_days_backward: int = Field(
+        description="Number of Days or Hours or Months backward to get data",
+        default=7,
+        order=3
     )
     date_in_file_name_format: str = Field(
         description="Date in file's name format. Follow pendulum format at <a href='https://pendulum.eustace.io/docs/#tokens'>here</a>",
-        default='YYYY-MM-DD',
-        order=3
+        default='YYYY-MM-DDTHHmmss',
+        order=4
     )
     timezone: str = Field(
         description="Date in file's name timezone. Default is UTC, get timezone name in <a href='https://en.wikipedia.org/wiki/List_of_tz_database_time_zones'>here</a>",
         default='UTC',
-        order=4
+        order=5
     )
 
 # class re-define the RemoteFile in airbyte cdk 

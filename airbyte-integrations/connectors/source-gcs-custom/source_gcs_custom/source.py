@@ -73,19 +73,34 @@ class SourceGCSCustomStreamReader(AbstractFileBasedStreamReader):
             user_defined_globs = [glob for glob in globs]
             final_globs = []
             if self.config and self.config.search_date_in_file_name.get_last_x_days_files_based_on_date_in_file_name:
-                start_date: date = pendulum \
-                    .today(self.config.search_date_in_file_name.timezone) \
-                    .subtract(days=self.config.search_date_in_file_name.number_days_backward)
+                start_date: date = pendulum.now(self.config.search_date_in_file_name.timezone)
+                
+                # support call backward day, hour and month
+                if self.config.search_date_in_file_name.backward_type == 'day':
+                    start_date = start_date.start_of('day').subtract(days=self.config.search_date_in_file_name.number_days_backward)
+                elif self.config.search_date_in_file_name.backward_type == 'hour':
+                    start_date = start_date.start_of('hour').subtract(hours=self.config.search_date_in_file_name.number_days_backward)
+                elif self.config.search_date_in_file_name.backward_type == 'month':
+                    start_date = start_date.start_of('month').subtract(months=self.config.search_date_in_file_name.number_days_backward)
+                else:
+                    raise ValueError("Backward Type not one of day, hour or month")
+
                 for i in range(0, self.config.search_date_in_file_name.number_days_backward + 1):
                     for glob in user_defined_globs:
-                        final_glob = glob + (f'{start_date.add(days=i).format(fmt=self.config.search_date_in_file_name.date_in_file_name_format)}**')
+                        if self.config.search_date_in_file_name.backward_type == 'day':
+                            final_glob = glob + (f'{start_date.add(days=i).format(fmt=self.config.search_date_in_file_name.date_in_file_name_format)}**')
+                        elif self.config.search_date_in_file_name.backward_type == 'hour':
+                            final_glob = glob + (f'{start_date.add(hours=i).format(fmt=self.config.search_date_in_file_name.date_in_file_name_format)}**')
+                        elif self.config.search_date_in_file_name.backward_type == 'month':
+                            final_glob = glob + (f'{start_date.add(months=i).format(fmt=self.config.search_date_in_file_name.date_in_file_name_format)}**')
+
                         final_globs.append(final_glob)
                 
             else: 
                 final_globs = user_defined_globs
-                start_date = pendulum.instance(datetime.strptime(self.config.start_date, self.DATE_TIME_FORMAT) if self.config and self.config.start_date else None)
+                start_date = pendulum.instance(datetime.strptime(self.config.start_date, self.DATE_TIME_FORMAT)) if self.config and self.config.start_date else None
                 
-            final_globs = list(set(final_globs))
+            final_globs = sorted(list(set(final_globs)))
             logger.info(f'GLOBS: {final_globs}')
             for glob in final_globs:
                 bucket: storage.Bucket = self.gcs_client.get_bucket(self.config.gcs_bucket)
