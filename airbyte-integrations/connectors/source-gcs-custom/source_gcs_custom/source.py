@@ -109,7 +109,7 @@ class SourceGCSCustomStreamReader(AbstractFileBasedStreamReader):
                     last_modified = pendulum.instance(dt=blob.updated).in_tz(tz=self.config.search_date_in_file_name.timezone)
                     file_compression = blob.name.split(".")[-1]
 
-                    logger.info(f' Check file: {blob.name}, type: {blob.content_type}, encoding: {blob.content_encoding}, compression: {file_compression}, last_modified: {last_modified}')
+                    logger.debug(f' Check file: {blob.name}, type: {blob.content_type}, encoding: {blob.content_encoding}, compression: {file_compression}, last_modified: {last_modified}')
                     
                     if not start_date or last_modified >= start_date:
                         signed_uri = blob.generate_signed_url(expiration=timedelta(hours=1), version="v4")
