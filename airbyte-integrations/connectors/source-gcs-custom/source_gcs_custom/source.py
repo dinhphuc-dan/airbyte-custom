@@ -74,7 +74,7 @@ class SourceGCSCustomStreamReader(AbstractFileBasedStreamReader):
             final_globs = []
             if self.config and self.config.search_date_in_file_name.get_last_x_days_files_based_on_date_in_file_name:
                 start_date: date = pendulum.now(self.config.search_date_in_file_name.timezone)
-                
+
                 # support call backward day, hour and month
                 if self.config.search_date_in_file_name.backward_type == 'day':
                     start_date = start_date.start_of('day').subtract(days=self.config.search_date_in_file_name.number_days_backward)
@@ -112,16 +112,16 @@ class SourceGCSCustomStreamReader(AbstractFileBasedStreamReader):
                     logger.info(f' Check file: {blob.name}, type: {blob.content_type}, encoding: {blob.content_encoding}, compression: {file_compression}, last_modified: {last_modified}')
                     
                     if not start_date or last_modified >= start_date:
+                        signed_uri = blob.generate_signed_url(expiration=timedelta(hours=1), version="v4")
                         if file_compression == 'zip':
                             yield from ZipHelper(blob=blob).create_gcs_remote_instance()
                         else:
-                            uri = blob.generate_signed_url(expiration=timedelta(hours=1), version="v4")
                             yield GCSRemoteFile(
-                                uri=uri, 
+                                uri=signed_uri, 
                                 last_modified=last_modified, 
                                 file_name=blob.name,
                                 file_type=blob.content_type,
-                                file_endcoding=blob.content_encoding,
+                                file_gcs_encoding=blob.content_encoding,
                                 file_compression=file_compression
                             )
         except Exception as exc:
@@ -142,20 +142,24 @@ class SourceGCSCustomStreamReader(AbstractFileBasedStreamReader):
         Open and yield a remote file from GCS for reading.
         """
         logger.debug(f' OPEN FILE {file}')
-        if 'gz' in file.file_compression:
+
+        if "charset" in file.file_type:
+            file_encoding = file.file_type.split(";")[1].split("=")[1]
+        else: 
+            file_encoding = encoding
+        
+
+        if (file.file_compression == 'gz' and file.file_gcs_encoding != 'gzip'):
             compression = ".gz"
         else:
             compression = "disable"
-        try:
-            if file.file_endcoding == 'gzip':
-                result = StringIO(requests.get(file.uri, headers={'Accept-Encoding': 'gzip'}).text)
-            else:
-                result = smart_open.open(
-                    uri=file.uri, 
-                    mode=mode.value, 
-                    encoding=encoding, 
-                    compression=compression
-                )
+        try:            
+            result = smart_open.open(
+                uri=file.uri, 
+                mode=mode.value, 
+                encoding=file_encoding, 
+                compression=compression
+            )
 
         except Exception as e:
             raise e

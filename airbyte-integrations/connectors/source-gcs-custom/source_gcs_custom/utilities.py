@@ -46,7 +46,7 @@ class GCSRemoteFile(BaseModel):
     last_modified: datetime
     file_name : str
     file_type: Optional[str] = None
-    file_endcoding: Optional[str] = None
+    file_gcs_encoding: Optional[str] = None
     file_compression: Optional[str] = None
 
 
@@ -72,6 +72,6 @@ class ZipHelper():
                 last_modified=pendulum.instance(dt=self._blob.updated), 
                 file_name=unzipped_file,
                 file_type=self._blob.content_type,
-                file_endcoding=self._blob.content_encoding,
+                file_gcs_encoding=self._blob.content_encoding,
                 file_compression=file_compression
             )
