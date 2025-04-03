@@ -89,7 +89,7 @@ class RealtimeCustomReport(MediationReportBase, IncrementalMixin):
         """
         date_range = stream_slice
 
-        app_id = self.app_id
+        app_id = 'ca-app-' + self.config["publisher_id"] + self.app_id 
 
         dimensions = self.get_dimensions()
 

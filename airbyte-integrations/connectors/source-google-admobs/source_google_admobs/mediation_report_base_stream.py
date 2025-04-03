@@ -218,7 +218,7 @@ class MediationReport(MediationReportBase,IncrementalMixin):
         """
         date_range = stream_slice
 
-        app_id = self.app_id
+        app_id = 'ca-app-' + self.config["publisher_id"] + self.app_id 
 
         """ add list ad_source_id does not include Admobs Network"""
         ad_source_id = self.list_adSource_id
