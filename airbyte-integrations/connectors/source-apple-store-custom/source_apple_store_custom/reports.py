@@ -26,6 +26,7 @@ class AppleStoreCustomStream(HttpStream, ABC):
     def __init__(self,config: Mapping[str, Any], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config = config
+        self._raise_on_http_errors = True
 
     @property
     def availability_strategy(self) -> Optional["AvailabilityStrategy"]:
@@ -41,6 +42,27 @@ class AppleStoreCustomStream(HttpStream, ABC):
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         yield {}
+    
+    @property
+    def raise_on_http_errors(self) -> bool:
+        """
+        Default is True. If set to False, allows opting-out of raising HTTP code exception.
+        """
+        return self._raise_on_http_errors
+
+    @raise_on_http_errors.setter
+    def raise_on_http_errors(self, value: bool):
+        self._raise_on_http_errors = value
+    
+    def should_retry(self, response: requests.Response) -> bool:
+        """
+        Apple Store return error 404, when there is no reports. 
+        We turn it into a record as {} instead of stopping sync
+        """
+        if response.status_code == 404:
+            setattr(self, "raise_on_http_errors", False)
+            return False
+        return super().should_retry(response=response)
 
 ''' check connection stream'''
 class AppleStoreCheckConnectionStream(AppleStoreCustomStream):
@@ -111,39 +133,30 @@ class AppleStoreReport(AppleStoreCustomStream, IncrementalMixin):
         return "salesReports"
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        '''Apple Store Sale Report API response back as gzip compress type, so we need to decompress then decode'''
         self.logger.info(f"Status code in Parse Response {response.status_code}")
-        response_in_gzip = response.content
-        response_as_bytes: bytes = gzip.decompress(response_in_gzip)
-        response_as_string: str = response_as_bytes.decode('utf-8')
+        if response.status_code == 404:
+            return {}
+        else: 
+            '''Apple Store Sale Report API response back as gzip compress type, so we need to decompress then decode'''
+            response_in_gzip = response.content
+            response_as_bytes: bytes = gzip.decompress(response_in_gzip)
+            response_as_string: str = response_as_bytes.decode('utf-8')
 
-        '''Then, we covert response string to a file object using StringIO
-        After that, we load file object to pandas frame and rename column
-        Finally, we yield records by using to_dict() of pandas data frame
-        '''
-        # load response to pandas data frame, need to use sep variable because we have special '\t 'charater
-        df = pd.read_csv(StringIO(response_as_string), sep='\\t', engine='python')
-        # rename column
-        df.rename(columns=lambda x: x.replace(' ','_'), inplace=True)
-        df.rename(columns=lambda x: x.replace('-','_'), inplace=True)
-        # replace Nan value as None
-        df.replace(np.nan, None, inplace=True)
-        df.replace(" ", None, inplace=True)
-        for record in df.to_dict(orient='records'):
-            yield record
+            '''Then, we covert response string to a file object using StringIO
+            After that, we load file object to pandas frame and rename column
+            Finally, we yield records by using to_dict() of pandas data frame
+            '''
+            # load response to pandas data frame, need to use sep variable because we have special '\t 'charater
+            df = pd.read_csv(StringIO(response_as_string), sep='\\t', engine='python')
+            # rename column
+            df.rename(columns=lambda x: x.replace(' ','_'), inplace=True)
+            df.rename(columns=lambda x: x.replace('-','_'), inplace=True)
+            # replace Nan value as None
+            df.replace(np.nan, None, inplace=True)
+            df.replace(" ", None, inplace=True)
+            for record in df.to_dict(orient='records'):
+                yield record
         
-        
-        # ''' response from Apple Store contain \t and \n so we need to convert them to json'''
-        # response_as_list: list = response_as_string.split('\n')
-        # list_column_name = response_as_list[0].split('\t')
-        # number_column = len(list_column_name)
-        # result = {}
-        # for number in  range(1,len(response_as_list)):
-        #     k = (response_as_list[number].split('\t'))
-        #     if number_column == len(k):
-        #         for no in range(0, number_column):
-        #             result.update({(list_column_name[no]).replace(" ", "_") : k[no]})
-        #         yield result
     
     
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
@@ -200,8 +213,6 @@ class AppleStoreReport(AppleStoreCustomStream, IncrementalMixin):
         stream_slice: Mapping[str, Any] = None,
         stream_state: Mapping[str, Any] = None,
     ) -> Iterable[Mapping[str, Any]]:
-        if not stream_slice:
-            return []
         records = super().read_records(sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state)
         for record in records:
             record_cursor_value = pendulum.from_format(record[self.cursor_field], self.cursor_format).date()
