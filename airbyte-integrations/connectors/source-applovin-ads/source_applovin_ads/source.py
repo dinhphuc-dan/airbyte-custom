@@ -130,10 +130,12 @@ class ApplovinAdsBaseStream(HttpStream, IncrementalMixin, ABC):
                 "day": {"type": ["null", "string"]},
                 "ad": {"type": ["null", "string"]},
                 "ad_id": {"type": ["null", "string"]},
+                "ad_type": {"type": ["null", "string"]},
                 "ad_creative_type": {"type": ["null", "string"]},
                 "campaign": {"type": ["null", "string"]},
                 "campaign_ad_type": {"type": ["null", "string"]},
                 "campaign_bid_goal": {"type": ["null", "string"]},
+                "campaign_id_external": {"type": ["null", "string"]},
                 "campaign_package_name": {"type": ["null", "string"]},
                 "campaign_store_id": {"type": ["null", "string"]},
                 "campaign_type": {"type": ["null", "string"]},
@@ -188,7 +190,7 @@ class ApplovinAdsReport(ApplovinAdsBaseStream):
         additional_params = {
             "start": stream_slice["start"],
             "end": stream_slice["end"],
-            "columns": "day,ad,ad_id,ad_creative_type,campaign,campaign_ad_type,campaign_bid_goal,campaign_package_name,campaign_store_id,campaign_type,clicks,conversions,cost,creative_set,creative_set_id,impressions,placement_type,platform",
+            "columns": "day,ad,ad_id,ad_type,ad_creative_type,campaign,campaign_ad_type,campaign_bid_goal,campaign_id_external,campaign_package_name,campaign_store_id,campaign_type,clicks,conversions,cost,creative_set,creative_set_id,impressions,placement_type,platform",
             
         }
         params.update(additional_params)
