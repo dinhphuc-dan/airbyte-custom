@@ -1,0 +1,25 @@
+data:
+  allowedHosts:
+    hosts:
+      - TODO # Please change to the hostname of the source.
+  registries:
+    oss:
+      enabled: false
+    cloud:
+      enabled: false
+  connectorSubtype: api
+  connectorType: source
+  definitionId: 32569b4a-65c8-4c69-ab84-33007e16a65d
+  dockerImageTag: 0.1.0
+  dockerRepository: airbyte/source-applovin-ads
+  githubIssueLabel: source-applovin-ads
+  icon: applovin-ads.svg
+  license: MIT
+  name: Applovin Ads
+  releaseDate: TODO
+  supportLevel: community
+  releaseStage: alpha
+  documentationUrl: https://docs.airbyte.com/integrations/sources/applovin-ads
+  tags:
+    - language:python
+metadataSpecVersion: "1.0"
