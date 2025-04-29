@@ -9,11 +9,7 @@ MAIN_REQUIREMENTS = [
     "airbyte-cdk~=0.51.0",
 ]
 
-TEST_REQUIREMENTS = [
-    "pytest~=6.2",
-    "pytest-mock~=3.6.1",
-    "source-acceptance-test",
-]
+TEST_REQUIREMENTS = []
 
 setup(
     name="source_google_admobs",

@@ -157,12 +157,15 @@ class RealtimeCustomReport(MediationReportBase, IncrementalMixin):
             start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
             # self.logger.info(f"stream slice start date in ELSE {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
 
-        slice.append(
-            {
-                "startDate": utils.turn_date_to_dict(start_date),
-                "endDate": utils.turn_date_to_dict(data_avaliable_date),
-            }
-        )
+        while start_date <= data_avaliable_date:
+            end_date: datetime.date = start_date 
+            slice.append(
+                {
+                    'startDate': utils.turn_date_to_dict(start_date),
+                    'endDate': utils.turn_date_to_dict(end_date),
+                }
+            )
+            start_date: datetime.date = end_date + datetime.timedelta(days=1)
 
         return slice or [None]
 
