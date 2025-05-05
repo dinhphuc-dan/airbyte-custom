@@ -158,10 +158,10 @@ class UnityAdsAdvertiseIncrementalStream(UnityAdsAdvertiseStream, IncrementalMix
         else: 
             start: datetime.date = pendulum.parse(self.config["start_date"]).date()
         
-        while start < data_avaliable_date:
+        while start <= data_avaliable_date:
             start_as_str: str = start.to_date_string()
             if start.month == data_avaliable_date.month:
-                end_as_str: str = data_avaliable_date.to_date_string()
+                end_as_str: str = data_avaliable_date.add(days=1).to_date_string()
                 slice.append({
                     "start": start_as_str,
                     "end": end_as_str

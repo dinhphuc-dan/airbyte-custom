@@ -8,14 +8,11 @@ from setuptools import find_packages, setup
 MAIN_REQUIREMENTS = [
     "airbyte-cdk==0.51.0",
     "pandas==2.1.0",
+    "numpy==1.26.4",
 
 ]
 
-TEST_REQUIREMENTS = [
-    "pytest~=6.2",
-    "pytest-mock~=3.6.1",
-    "connector-acceptance-test",
-]
+TEST_REQUIREMENTS = []
 
 setup(
     name="source_unity_ads_advertise",
