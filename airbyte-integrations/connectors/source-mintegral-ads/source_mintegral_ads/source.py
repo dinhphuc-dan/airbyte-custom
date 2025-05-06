@@ -233,7 +233,7 @@ class MintegralAdsReport(MintegralAdsStream):
                 "not_empty_field": "click,install,impression,spend",
             }
         )
-        self.logger.info(f" Request Params {stream_slice['start_date'], stream_slice['end_date'], stream_slice['campaign_id']}")
+        self.logger.info(f" Request Params {stream_slice['start_date'], stream_slice['end_date'], stream_slice['campaign_id'], self.utc_offset}")
         return request_params
 
     def read_records(
@@ -326,7 +326,7 @@ class MintegralCustomReportRegisterJob(MintegralAdsStream):
                 {
                     "start_time": self._request_slice_date_range["start_date"],
                     "end_time": self._request_slice_date_range["end_date"],
-                    "utc": self.utc_offset,
+                    "timezone": self.utc_offset,
                     "dimension_option": ",".join(self.custom_report_dimension),
                     "time_granularity": self.custom_report_time_granularity[0],
                     "type": 1,
