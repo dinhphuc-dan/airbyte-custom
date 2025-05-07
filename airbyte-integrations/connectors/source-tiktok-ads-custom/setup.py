@@ -9,12 +9,7 @@ MAIN_REQUIREMENTS = [
     "airbyte-cdk==0.53.9",
 ]
 
-TEST_REQUIREMENTS = [
-    "requests-mock~=1.9.3",
-    "pytest~=6.2",
-    "pytest-mock~=3.6.1",
-    "connector-acceptance-test",
-]
+TEST_REQUIREMENTS = []
 
 setup(
     name="source_tiktok_ads_custom",

@@ -242,7 +242,7 @@ class TiktokAdsAdGroupReport(TiktokAdsCustomStream, IncrementalMixin):
             "report_type": "BASIC",
             "data_level": "AUCTION_ADGROUP",
             "dimensions": ["adgroup_id", "stat_time_day","country_code"],
-            "metrics": ["promotion_type","placement_type","adgroup_name","campaign_name","campaign_id", "objective_type","spend", "impressions", "clicks", "reach", "conversion","real_time_conversion", "result","real_time_result","currency"],
+            "metrics": ["promotion_type","placement_type","adgroup_name","campaign_name","campaign_id", "objective_type","spend", "impressions", "clicks", "reach", "conversion","real_time_conversion", "result","real_time_result","currency", "mobile_app_id", "tt_app_id", "tt_app_name"],
             "page_size": self.page_size
         }
 
@@ -327,6 +327,9 @@ class TiktokAdsAdGroupReport(TiktokAdsCustomStream, IncrementalMixin):
                 "objective_type": {"type": ["null", "string"]},
                 "promotion_type": {"type": ["null", "string"]},
                 "currency": {"type": ["null", "string"]},
+                "mobile_app_id": {"type": ["null", "string"]},
+                "tt_app_id": {"type": ["null", "string"]},
+                "tt_app_name": {"type": ["null", "string"]},
                 "spend": {"type": ["null", "number"]},
                 "impressions": {"type": ["null", "number"]},
                 "clicks": {"type": ["null", "number"]},
