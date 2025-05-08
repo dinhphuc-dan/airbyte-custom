@@ -217,6 +217,12 @@ class FacebookAdsAdSetsInfoStream(FacebookAdsStream):
     @property
     def state(self) -> Mapping[str, Any]:
         return {}
+    
+    def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
+        slice: list = []
+        for id in self.config["ad_account_id"]:
+            slice.append({"ad_account_id": id})
+        return slice or [None]
 
     def path(
         self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
@@ -236,7 +242,8 @@ class FacebookAdsAdSetsInfoStream(FacebookAdsStream):
         
         if next_page_token:
             params.update({"after": next_page_token})
-
+        
+        self.logger.info(f"Adsets info params: {params['fields']}")
         return params
 
     def read_records(
