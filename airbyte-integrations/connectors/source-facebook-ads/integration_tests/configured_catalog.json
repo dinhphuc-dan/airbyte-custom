@@ -2,7 +2,7 @@
   "streams": [
     {
       "stream": {
-        "name": "ads_insights_country",
+        "name": "adsets_info",
         "json_schema": {},
         "supported_sync_modes": ["full_refresh", "incremental"]
       },
@@ -11,7 +11,7 @@
     },
     {
       "stream": {
-        "name": "adsets_info",
+        "name": "ads_insights_country",
         "json_schema": {},
         "supported_sync_modes": ["full_refresh", "incremental"]
       },

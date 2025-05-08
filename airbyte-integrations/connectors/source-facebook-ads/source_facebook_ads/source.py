@@ -104,7 +104,7 @@ class FacebookAdsStream(HttpStream, IncrementalMixin, ABC):
         """
         while start_date < data_avaliable_date:
             start_date_as_str: str = start_date.to_date_string()
-            if start_date.month == data_avaliable_date.month:
+            if start_date.month == data_avaliable_date.month and start_date.year == data_avaliable_date.year:
                 end_date_as_str: str = data_avaliable_date.to_date_string()
                 for id in self.config["ad_account_id"]:
                     slice.append({"time_range[since]": start_date_as_str, "time_range[until]": end_date_as_str, "ad_account_id": id})
@@ -515,6 +515,7 @@ class FacebookAdsAsynchronousStream(FacebookAdsSynchronousStream):
         slices = super().stream_slices(stream_state, **kwargs)
         list_jobs_plus_info = []
         for slice in slices:
+            print(slice)
             # update slice with request params then pass to FacebookAdsAsynchronousCreateJob
             slice.update(super().request_params())
             # create job
