@@ -191,6 +191,89 @@ class FacebookAdsCheckConnection(FacebookAdsStream):
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         yield response.json()
 
+# Adsets Info
+class FacebookAdsAdSetsInfoStream(FacebookAdsStream):
+    fields = [
+        "id",
+        "name",
+        "configured_status",
+        "destination_type",
+        "promoted_object",
+        "account_id",
+        "campaign_id",
+        "effective_status",
+    ]
+
+    @property
+    def name(self) -> str:
+        """Override method to get stream name according to each package name"""
+        stream_name = "adsets_info"
+        return stream_name
+    
+    @property
+    def cursor_field(self) -> Union[str, List[str]]:
+        return []
+    
+    @property
+    def state(self) -> Mapping[str, Any]:
+        return {}
+
+    def path(
+        self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
+    ) -> str:
+        account_id = stream_slice["ad_account_id"]
+        return f"{self.api_version}/act_{account_id}/adsets"
+
+    def request_params(
+        self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
+    ) -> MutableMapping[str, Any]:
+        params: dict = super().request_params(stream_state=stream_state, stream_slice=stream_slice, next_page_token=next_page_token)
+        params.update(
+            {
+                "fields": (",").join(self.fields),
+            }
+        )
+        
+        if next_page_token:
+            params.update({"after": next_page_token})
+
+        return params
+
+    def read_records(
+        self,
+        sync_mode: SyncMode,
+        cursor_field: List[str] = None,
+        stream_slice: Mapping[str, Any] = None,
+        stream_state: Mapping[str, Any] = None,
+    ) -> Iterable[Mapping[str, Any]]:
+        records = super().read_records(sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state)
+        for record in records:
+            yield record
+
+    def get_json_schema(self) -> Mapping[str, Any]:
+        full_schema = {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "object",
+            "required": [],
+            "properties": {
+                "id": {"type": ["null", "string"]},
+                "name": {"type": ["null", "string"]},
+                "configured_status": {"type": ["null", "string"]},
+                "destination_type": {"type": ["null", "string"]},
+                "promoted_object": {"type": ["null", "object"]},
+                "account_id": {"type": ["null", "string"]},
+                "campaign_id": {"type": ["null", "string"]},
+                "effective_status": {"type": ["null", "string"]},
+            },
+        }
+        return full_schema
+
+    def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
+        response_json = response.json()
+        if "data" in response_json:
+            for record in response_json["data"]:
+                yield record
+
 
 # Synchronous Stream
 class FacebookAdsSynchronousStream(FacebookAdsStream):
@@ -514,8 +597,9 @@ class SourceFacebookAds(AbstractSource):
             return False, e
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
+        streams = [FacebookAdsAdSetsInfoStream(config=config)]
         if config.get("sync_type") == "synchronous requests as GET":
-            streams = [FacebookAdsSynchronousStream(config=config)]
+            streams.append(FacebookAdsSynchronousStream(config=config))
         elif config.get("sync_type") == "asynchronous requests as POST":
-            streams = [FacebookAdsAsynchronousStream(config=config)]
+            streams.append(FacebookAdsAsynchronousStream(config=config))
         return streams
