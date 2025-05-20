@@ -116,7 +116,7 @@ class {{properCase name}}BaseStream(HttpStream, IncrementalMixin, ABC):
 
         while start_date <= data_avaliable_date:
             start_date_as_str: str = start_date.to_date_string()
-            if start_date.month == data_avaliable_date.month:
+            if start_date.month == data_avaliable_date.month and start_date.year == data_avaliable_date.year:
                 end_date_as_str: str = data_avaliable_date.to_date_string()
                 slice.append({
                     # TODO: Change to the date field used by the API. Required.
@@ -124,7 +124,7 @@ class {{properCase name}}BaseStream(HttpStream, IncrementalMixin, ABC):
                     "end": end_date_as_str
                 })
             else:
-                end_date_as_str: str = start_date.end_of("month").add(days=1).to_date_string()
+                end_date_as_str: str = start_date.end_of("month").to_date_string()
                 slice.append({
                     # TODO: Change to the date field used by the API. Required.
                     "start": start_date_as_str,
