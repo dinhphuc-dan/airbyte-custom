@@ -31,7 +31,8 @@ class AdjustCustomBaseStream(HttpStream, IncrementalMixin, ABC):
     _cursor_value = None
 
     url_base = "https://automate.adjust.com/reports-service/"
-    custom_backoff = False
+    _chunk_date_range = 7
+    _custom_backoff = False
     _raise_on_http_errors = True
 
     def __init__(self, config: Mapping[str, Any], *args, **kwargs):
@@ -40,6 +41,7 @@ class AdjustCustomBaseStream(HttpStream, IncrementalMixin, ABC):
         self.number_days_backward: int = self.config.get("number_days_backward", 7)
         self.timezone: str = self.config.get("timezone", "UTC")
         self.get_last_X_days = self.config.get("get_last_X_days", False)
+        self.chunk_date_range = self.config.get("chunk_date_range", self._chunk_date_range)
 
     @property
     def availability_strategy(self) -> Optional["AvailabilityStrategy"]:
@@ -105,19 +107,25 @@ class AdjustCustomBaseStream(HttpStream, IncrementalMixin, ABC):
 
         while start_date <= data_avaliable_date:
             start_date_as_str: str = start_date.to_date_string()
-            if start_date.month == data_avaliable_date.month:
-                end_date_as_str: str = data_avaliable_date.to_date_string()
-                slice.append({
-                    "start": start_date_as_str,
-                    "end": end_date_as_str
-                })
+            if (data_avaliable_date - start_date).days >= self.chunk_date_range:
+                end_date: datetime.date = start_date.add(days=self.chunk_date_range)
+                end_date_as_str: str = end_date.to_date_string()
+                slice.append(
+                    {
+                        "start": start_date_as_str,
+                        "end": end_date_as_str,
+                    }
+                )
             else:
-                end_date_as_str: str = start_date.end_of("month").add(days=1).to_date_string()
-                slice.append({
-                    "start": start_date_as_str,
-                    "end": end_date_as_str
-                })
-            start_date: datetime.date = start_date.add(months=1).start_of('month')
+                end_date: datetime.date = data_avaliable_date
+                end_date_as_str: str = end_date.to_date_string()
+                slice.append(
+                    {   
+                        "start": start_date_as_str,
+                        "end": end_date_as_str,
+                    }
+                )
+            start_date: datetime.date = end_date.add(days=1)
 
         return slice or [None]
 
@@ -147,11 +155,11 @@ class AdjustCustomCheckConnection(AdjustCustomBaseStream):
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
         params = {
-            "dimensions": "day,app,store_id",
-            "metrics": "cost,installs,ad_revenue",
             "date_period": "yesterday",
             "utc_offset": ("+0" + str(self.config["utc_offset"]) + ":00") if self.config["utc_offset"] >= 0 else ("-0" + str(abs(self.config["utc_offset"])) + ":00"),
             "format_dates": True,
+            "dimensions": "day",
+            "metrics": "cost,installs,ad_revenue",
         }
         self.logger.info(f"Request params {params}")
         return params 
@@ -170,7 +178,6 @@ class AdjustCustomDailyReportStream(AdjustCustomBaseStream):
         "installs", 
         "ad_revenue"
     ]
-    
 
     @property
     def name(self) -> str:
@@ -211,12 +218,12 @@ class AdjustCustomDailyReportStream(AdjustCustomBaseStream):
         metrics: str = ",".join(self._finalized_metrics)
 
         params = {
-            "dimensions": dimensions,
-            "metrics": metrics,
             "date_period": date_period,
             "utc_offset": ("+0" + str(self.config["utc_offset"]) + ":00") if self.config["utc_offset"] >= 0 else ("-0" + str(abs(self.config["utc_offset"])) + ":00"),
             "format_dates": True,
-            "sort":"day"
+            "sort":"day",
+            "dimensions": dimensions,
+            "metrics": metrics,
         }
 
         self.logger.info(f"Request params {params}")
