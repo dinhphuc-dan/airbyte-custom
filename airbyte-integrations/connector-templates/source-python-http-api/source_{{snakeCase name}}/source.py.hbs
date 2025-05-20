@@ -10,7 +10,14 @@ import requests
 from airbyte_cdk.sources import AbstractSource
 from airbyte_cdk.sources.streams import Stream, IncrementalMixin
 from airbyte_cdk.sources.streams.http import HttpStream
-from airbyte_cdk.sources.streams.http.auth import TokenAuthenticator, NoAuth
+from airbyte_cdk.sources.streams.http.requests_native_auth import (
+    TokenAuthenticator, 
+    MultipleTokenAuthenticator, 
+    BasicHttpAuthenticator, 
+    Oauth2Authenticator, 
+    SingleUseRefreshTokenOauth2Authenticator
+)
+from airbyte_cdk.sources.streams.http.auth import NoAuth
 
 from airbyte_cdk.models import SyncMode
 from airbyte_cdk.sources.streams.availability_strategy import AvailabilityStrategy
@@ -32,6 +39,10 @@ class {{properCase name}}BaseStream(HttpStream, IncrementalMixin, ABC):
 
     # TODO: Use when wanna custom backoff time.
     custom_backoff = False
+    
+    # TODO: use when wanna skip error in 4XX, instead of stopping the whole stream.
+    _raise_on_http_errors = True
+
     def __init__(self, config: Mapping[str, Any], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.config = config
@@ -103,23 +114,23 @@ class {{properCase name}}BaseStream(HttpStream, IncrementalMixin, ABC):
             start_date: datetime.date = pendulum.parse(self.config["start_date"]).date()
             # self.logger.info(f"stream slice start date in ELSE {start_date}, cusor value {self._cursor_value}, stream state {stream_state}")
 
-        while start < data_avaliable_date:
-            start_as_str: str = start.to_date_string()
-            if start.month == data_avaliable_date.month:
-                end_as_str: str = data_avaliable_date.to_date_string()
+        while start_date <= data_avaliable_date:
+            start_date_as_str: str = start_date.to_date_string()
+            if start_date.month == data_avaliable_date.month:
+                end_date_as_str: str = data_avaliable_date.to_date_string()
                 slice.append({
                     # TODO: Change to the date field used by the API. Required.
-                    "start": start_as_str,
-                    "end": end_as_str
+                    "start": start_date_as_str,
+                    "end": end_date_as_str
                 })
             else:
-                end_as_str: str = start.end_of("month").add(days=1).to_date_string()
+                end_date_as_str: str = start_date.end_of("month").add(days=1).to_date_string()
                 slice.append({
                     # TODO: Change to the date field used by the API. Required.
-                    "start": start_as_str,
-                    "end": end_as_str
+                    "start": start_date_as_str,
+                    "end": end_date_as_str
                 })
-            start: datetime.date = start.add(months=1).start_of('month') 
+            start_date: datetime.date = start_date.add(months=1).start_of('month')
 
         ''' TODO uncomment this code if you want to use the chunk date range'''
         # while start_date <= data_avaliable_date:
