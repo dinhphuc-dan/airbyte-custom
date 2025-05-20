@@ -35,10 +35,10 @@ class {{properCase name}}BaseStream(HttpStream, IncrementalMixin, ABC):
     url_base = "https://example-api.com/v1/"
     
     # TODO: Use when api has a range limit between start date and end date.
-    # chunk_date_range = 6
+    _chunk_date_range = 6
 
     # TODO: Use when wanna custom backoff time.
-    custom_backoff = False
+    _custom_backoff = False
     
     # TODO: use when wanna skip error in 4XX, instead of stopping the whole stream.
     _raise_on_http_errors = True
@@ -49,6 +49,7 @@ class {{properCase name}}BaseStream(HttpStream, IncrementalMixin, ABC):
         self.number_days_backward: int = self.config.get("number_days_backward", 7)
         self.timezone: str = self.config.get("timezone", "UTC")
         self.get_last_X_days = self.config.get("get_last_X_days", False)
+        self.chunk_date_range = self.config.get("chunk_date_range", self._chunk_date_range)
 
     @property
     def availability_strategy(self) -> Optional["AvailabilityStrategy"]:
@@ -141,8 +142,8 @@ class {{properCase name}}BaseStream(HttpStream, IncrementalMixin, ABC):
         #         slice.append(
         #             {
         #                 # TODO: Change to the date field used by the API. Required.
-        #                 "start_date": start_date_as_str,
-        #                 "end_date": end_date_as_str,
+        #                 "start": start_date_as_str,
+        #                 "end": end_date_as_str,
         #             }
         #         )
         #     else:
@@ -151,8 +152,8 @@ class {{properCase name}}BaseStream(HttpStream, IncrementalMixin, ABC):
         #         slice.append(
         #             {   
         #                 # TODO: Change to the date field used by the API. Required.
-        #                 "start_date": start_date_as_str,
-        #                 "end_date": end_date_as_str,
+        #                 "start": start_date_as_str,
+        #                 "end": end_date_as_str,
         #             }
         #         )
         #     start_date: datetime.date = end_date.add(days=1)
@@ -194,19 +195,19 @@ class {{properCase name}}BaseStream(HttpStream, IncrementalMixin, ABC):
             self._error_message = (
                 f"API reached limit with error 400, code {response.json()}. Pause for {self._back_off_time} second"
             )
-            self.custom_backoff = True
+            self._custom_backoff = True
             return True
         else:
             return super().should_retry(response=response)
 
     def backoff_time(self, response: requests.Response) -> Optional[float]:
-        if self.custom_backoff:
+        if self._custom_backoff:
             return self._back_off_time
         else:
             return super().backoff_time(response=response)
 
     def error_message(self, response: requests.Response) -> str:
-        if self.custom_backoff:
+        if self._custom_backoff:
             return self._error_message
         else:
             return super().error_message(response=response)
