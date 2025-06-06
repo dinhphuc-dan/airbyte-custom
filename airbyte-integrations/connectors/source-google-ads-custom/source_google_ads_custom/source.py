@@ -8,12 +8,9 @@ from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Tuple
 
 import requests
 from airbyte_cdk.sources import AbstractSource
-from airbyte_cdk.sources.streams import Stream, IncrementalMixin
-from airbyte_cdk.models import SyncMode, AirbyteMessage, AirbyteStream, ConfiguredAirbyteStream
-import pendulum
-import datetime
-import time
-from io import StringIO
+from airbyte_cdk.sources.streams import Stream
+from airbyte_cdk.models import SyncMode, AirbyteMessage
+
 
 import re
 from enum import Enum
@@ -26,16 +23,13 @@ from google.ads.googleads.v20.services.services.google_ads_service import Google
 from google.ads.googleads.v20.services.types.google_ads_service import (
     GoogleAdsRow, 
     SearchGoogleAdsStreamRequest, 
-    SearchGoogleAdsStreamResponse,
-    SearchGoogleAdsRequest,
-    SearchGoogleAdsResponse
+    SearchGoogleAdsStreamResponse
 )
 
 
 from google.ads.googleads.v20.services.services.google_ads_field_service import GoogleAdsFieldServiceClient
 from google.ads.googleads.v20.services.types.google_ads_field_service import (
-    SearchGoogleAdsFieldsRequest, 
-    SearchGoogleAdsFieldsResponse
+    SearchGoogleAdsFieldsRequest
 )
 
 
@@ -65,48 +59,54 @@ class GoogleAdsCustomBaseStream(Stream, ABC):
                  table_name: str = None,
                  validated_custom_query : str = None,
                  query_metadata : dict[str] = None,
+                 all_account_and_its_mcc_as_dict: dict[str] = None,
                  *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
         config['credentials']['use_proto_plus'] = True
         self.config = config
+        self.credentials: dict = config['credentials']
         self.table_name = table_name
         self.validated_custom_query = validated_custom_query
         self.query_metadata = query_metadata
-        self.credentials = config['credentials']
-        self.google_ads_client = self._get_google_ads_client()
-        self.google_ads_service_report = self._create_google_ads_service_report()
-        self.google_ads_service_field = self._create_google_ads_service_field()
+        self.all_account_and_its_mcc_as_dict = all_account_and_its_mcc_as_dict
+        self.google_ads_client_default: GoogleAdsClient = self.get_google_ads_client(login_customer_id=None)
+        self.google_ads_service_field: GoogleAdsFieldServiceClient = self._create_google_ads_service_field()
     
     @property
     def name(self) -> str:
         return self.table_name
     
-    def _get_google_ads_client(self) -> GoogleAdsClient:
-        """ create google ads client """
-        try: 
-            return GoogleAdsClient.load_from_dict(self.credentials)
+    def get_google_ads_client(self, login_customer_id: str = None) -> GoogleAdsClient:
+        """ create google ads client base on each manager account (MCC) """
+        try:
+            if login_customer_id:
+                credentials = self.credentials.copy()
+                credentials['login_customer_id'] = login_customer_id
+                return GoogleAdsClient.load_from_dict(credentials)
+            else:
+                return GoogleAdsClient.load_from_dict(self.credentials)
         except Exception as e:
             raise e
     
-    def _create_google_ads_service_report(self, service_name='GoogleAdsService') -> GoogleAdsServiceClient:
+    def create_google_ads_service_report(self, google_ads_client: GoogleAdsClient, service_name='GoogleAdsService') -> GoogleAdsServiceClient:
         """ create google ads service for pulling report data """
-        return self.google_ads_client.get_service(name=service_name)
+        return google_ads_client.get_service(name=service_name)
     
-    def _create_google_ads_search_report_object(self, customer_id: str, query: str) -> SearchGoogleAdsStreamRequest:
+    def create_google_ads_search_report_object(self, google_ads_client: GoogleAdsClient, customer_id: str, query: str) -> SearchGoogleAdsStreamRequest:
         """ create a search object in order to use with google_ads_service_report.search_stream() """
-        search_report_object: SearchGoogleAdsStreamRequest = self.google_ads_client.get_type(name='SearchGoogleAdsStreamRequest')
+        search_report_object: SearchGoogleAdsStreamRequest = google_ads_client.get_type(name='SearchGoogleAdsStreamRequest')
         search_report_object.customer_id = customer_id
         search_report_object.query = query
         return search_report_object
     
     def _create_google_ads_service_field(self, service_name='GoogleAdsFieldService') -> GoogleAdsFieldServiceClient:
         """ create google ads service for getting report data """
-        return self.google_ads_client.get_service(name=service_name)
+        return self.google_ads_client_default.get_service(name=service_name)
     
     def _create_google_ads_search_field_object(self, query: str, page_size: int = None) -> SearchGoogleAdsFieldsRequest:
         """ create a search object """
-        search_fields_object: SearchGoogleAdsFieldsRequest = self.google_ads_client.get_type(name='SearchGoogleAdsFieldsRequest')
+        search_fields_object: SearchGoogleAdsFieldsRequest = self.google_ads_client_default.get_type(name='SearchGoogleAdsFieldsRequest')
         search_fields_object.query = query
         search_fields_object.page_size = page_size
         return search_fields_object
@@ -132,10 +132,16 @@ class GoogleAdsCustomBaseStream(Stream, ABC):
         """
         # each slice is a customer ID
         customer_id = stream_slice
+        # look up its mcc
+        # self.logger.info(f"all_account_and_its_mcc_as_dict: {self.all_account_and_its_mcc_as_dict}")
+        mcc = self.all_account_and_its_mcc_as_dict.get(customer_id)
         query = custom_query if custom_query else self.validated_custom_query
-        self.logger.info(f"Query: {query}")
-        search_report_object = self._create_google_ads_search_report_object(customer_id=customer_id, query=query)
-        response = self.google_ads_service_report.search_stream(request=search_report_object)
+        # self.logger.info(f"Query: {query}")
+        # init google ads client with a specific MCC
+        google_ads_client_with_mcc = self.get_google_ads_client(login_customer_id=mcc)
+        google_ads_service_report = self.create_google_ads_service_report(google_ads_client=google_ads_client_with_mcc)
+        search_report_object = self.create_google_ads_search_report_object(google_ads_client=google_ads_client_with_mcc,customer_id=customer_id, query=query)
+        response = google_ads_service_report.search_stream(request=search_report_object)
         yield from self.parse_response(response=response, stream_slice=stream_slice)
     
     def parse_response(self, response: _StreamingResponseIterator[SearchGoogleAdsStreamResponse], **kwargs) -> Iterable[Mapping]:
@@ -144,7 +150,7 @@ class GoogleAdsCustomBaseStream(Stream, ABC):
             for row in batch.results:
                 record = self._convert_googleads_row_to_dict(googleads_row=row)
                 yield record
-    
+   
     def _convert_googleads_row_to_dict(self, googleads_row: GoogleAdsRow) -> dict[str, Any]:
         """
         Due to Google Ads Row is a class, we need to mapping its attribution to each column
@@ -223,7 +229,7 @@ class GoogleAdsCustomBaseStream(Stream, ABC):
 
         return full_schema
 
-    def check_query_connection(self):
+    def check_query_connection(self) -> str:
         """ 
         Send query for each customer ID to Google Ads for checking connection.
         The query contains Select and From clause from users. 
@@ -231,16 +237,60 @@ class GoogleAdsCustomBaseStream(Stream, ABC):
         """
         select_clause =  (',').join(self.query_metadata['select_clause'])
         from_clause = self.query_metadata['from_clause']
+        table_name = self.table_name
 
         check_connection_query = f""" 
             SELECT {select_clause} 
             FROM {from_clause} 
             WHERE segments.date DURING TODAY 
-            LIMIT 1 
+            LIMIT 1
         """
-
-        for customer_id in self.stream_slices():
-            return next(self.read_records(sync_mode=SyncMode.full_refresh, stream_slice=customer_id, custom_query=check_connection_query))
+        try: 
+            for customer_id in self.stream_slices():
+                self.logger.info(f"Check customer ID: {customer_id}")
+                # self.logger.info(f"Query: {check_connection_query}")
+                list_record = []
+                for record in self.read_records(sync_mode=SyncMode.full_refresh, stream_slice=customer_id, custom_query=check_connection_query):
+                    list_record.append(record)
+            return f'Check connection success for stream {table_name}'
+        except Exception as e:
+            raise e
+        
+    @lru_cache()
+    def find_manager_account_for_each_customer_id(self) -> list[dict]:
+        """
+        Get all accessiable customers, and their manager account.
+        Args:
+            - customer_ids: list of customer ids 
+        Return:
+            - customer_id: list of customer ids and its MCC as {customer_id: MCC}
+        """
+        # Ref: https://developers.google.com/google-ads/api/docs/account-management/get-account-hierarchy
+        accessiable_customer_ids = self.google_ads_client_default.get_service(name='CustomerService').list_accessible_customers().resource_names
+        google_ads_service_report = self.create_google_ads_service_report(google_ads_client=self.google_ads_client_default)
+        accessiable_customer_ids =  [ google_ads_service_report.parse_customer_path(id)['customer_id'] for id in accessiable_customer_ids]
+        q = """
+            SELECT
+                customer_client.client_customer,
+                customer_client.level,
+                customer_client.manager,
+                customer_client.id,
+                customer_client.status,
+                customer_client.hidden
+            FROM customer_client
+            WHERE customer_client.level = 1
+        """
+        all_account_and_its_mcc_as_dict = {}
+        mcc_regex = re.compile(r'^customers/(?P<MCC>[0-9]*?)/', flags=re.I | re.DOTALL | re.VERBOSE)
+        for id in accessiable_customer_ids: 
+            try:
+                res = google_ads_service_report.search(customer_id=id, query=q)
+                for customer in res:
+                    mcc = mcc_regex.search(customer.customer_client.resource_name).group('MCC')
+                    all_account_and_its_mcc_as_dict.update({str(customer.customer_client.id): mcc})
+            except Exception:
+                continue
+        return all_account_and_its_mcc_as_dict
 
 
 # Source
@@ -273,25 +323,36 @@ class SourceGoogleAdsCustom(AbstractSource):
             'where_clause': query_regex.group("WhereClause").strip(),
         }
         return query_metadata
+
+    def _get_manager_account_for_all_customer_ids(self, config):
+        """
+        Get all accessiable customers, and their manager account
+        """
+        connection = GoogleAdsCustomBaseStream(
+                    config=config
+        )
+        return connection.find_manager_account_for_each_customer_id()
             
     def check_connection(self, logger, config) -> Tuple[bool, any]:
         try:
+            all_account_and_its_mcc_as_dict = self._get_manager_account_for_all_customer_ids(config)
             for query in config['custom_gaql_query']:
                 query_metadata = self._validate_and_set_custom_query_metadata(query['custom_query'])
                 connection = GoogleAdsCustomBaseStream(
                     config=config,
                     table_name=query['table_name'],
                     validated_custom_query=query['custom_query'],
-                    query_metadata=query_metadata
+                    query_metadata=query_metadata,
+                    all_account_and_its_mcc_as_dict=all_account_and_its_mcc_as_dict
                 )
-                connection.check_query_connection()
-                logger.info(f"Check connection success")
+                logger.info(f"{connection.check_query_connection()}")
             return True, None
         except Exception as e:
             return False, e
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
         streams = []
+        all_account_and_its_mcc_as_dict = self._get_manager_account_for_all_customer_ids(config)
         for query in config['custom_gaql_query']:
             query_metadata = self._validate_and_set_custom_query_metadata(query['custom_query'])
             streams.append(
@@ -299,7 +360,8 @@ class SourceGoogleAdsCustom(AbstractSource):
                     config=config,
                     table_name=query['table_name'],
                     validated_custom_query=query['custom_query'],
-                    query_metadata=query_metadata
+                    query_metadata=query_metadata,
+                    all_account_and_its_mcc_as_dict=all_account_and_its_mcc_as_dict
                 )
             )
         return streams
