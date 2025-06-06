@@ -1,0 +1,78 @@
+documentationUrl: https://docsurl.com
+connectionSpecification:
+  $schema: http://json-schema.org/draft-07/schema#
+  title: Google Ads Custom Spec
+  type: object
+  required:
+    - credentials
+    - customer_id
+    - custom_gaql_query
+  properties:
+    credentials:
+      type: object
+      order: 1
+      required:
+        - developer_token
+        - client_id
+        - client_secret
+        - refresh_token
+      properties:
+        developer_token:
+          title: Developer Token
+          type: string
+          order: 1
+          description: Developer Token. Folow instructions from airbyte open-source <a href="https://docs.airbyte.com/integrations/sources/google-ads#setup-guide">here</a>
+          airbyte_secret: True
+        client_id:
+          title: Client ID
+          type: string
+          order: 2
+          description: Client ID. Folow instructions from airbyte open-source <a href="https://docs.airbyte.com/integrations/sources/google-ads#setup-guide">here</a>
+        client_secret:
+          title: Client Secret
+          type: string
+          order: 3
+          description: Client Secret. Folow instructions from airbyte open-source <a href="https://docs.airbyte.com/integrations/sources/google-ads#setup-guide">here</a>
+          airbyte_secret: True
+        refresh_token:
+          title: Refresh Token
+          type: string
+          order: 4
+          description: Refresh Token. Folow instructions from airbyte open-source <a href="https://docs.airbyte.com/integrations/sources/google-ads#setup-guide">here</a>
+          airbyte_secret: True
+    customer_id:
+      title: Customer ID
+      type: string
+      order: 2
+      description: Comma-separated list of (client) customer IDs. Each customer ID must be specified as a 10-digit number without dashes. Folow instructions from airbyte open-source <a href="https://docs.airbyte.com/integrations/sources/google-ads#setup-guide">here</a>.
+      pattern: '^[0-9]{10}(,[0-9]{10})*$'
+      pattern_descriptorr: 'The customer ID must be 10 digits. Separate multiple customer IDs using commas.'
+      example: ['6783948572,5839201945']
+    custom_gaql_query:
+      title: Custom Query
+      type: array
+      order: 3
+      description: Each custom query will be a table in your destination
+      items:
+        type: object
+        required:
+          - table_name
+          - custom_query
+        properties:
+          table_name:
+            title: Destination Table Name
+            order: 1
+            type: string
+            description: The table name in your destination database for the chosen query.
+          custom_query:
+            title: Custom Query
+            type: string
+            order: 2
+            multiline: true
+            description: >- 
+              A custom defined GAQL query for building the report. 
+              Read more from here <a href="https://developers.google.com/google-ads/api/docs/query/overview">here</a>.
+              You can validate your query here <a href="https://developers.google.com/google-ads/api/fields/v20/query_validator">here</a>
+            example: [
+                "SELECT segments.ad_destination_type, campaign.advertising_channel_sub_type FROM campaign WHERE campaign.status = 'PAUSED'"
+              ]
