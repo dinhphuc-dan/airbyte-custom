@@ -42,6 +42,7 @@ class AdjustCustomBaseStream(HttpStream, IncrementalMixin, ABC):
         self.timezone: str = self.config.get("timezone", "UTC")
         self.get_last_X_days = self.config.get("get_last_X_days", False)
         self.chunk_date_range = self.config.get("chunk_date_range", self._chunk_date_range)
+        self.ad_revenue_sources = self.config.get("ad_revenue_sources", None)
 
     @property
     def availability_strategy(self) -> Optional["AvailabilityStrategy"]:
@@ -224,6 +225,7 @@ class AdjustCustomDailyReportStream(AdjustCustomBaseStream):
             "sort":"day",
             "dimensions": dimensions,
             "metrics": metrics,
+            "ad_revenue_sources": self.ad_revenue_sources
         }
 
         self.logger.info(f"Request params {params}")

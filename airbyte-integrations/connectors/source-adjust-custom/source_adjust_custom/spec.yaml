@@ -72,3 +72,8 @@ connectionSpecification:
       type: string
       order: 9
       description: Default is UTC, get timezone name in <a href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones">here</a>
+    ad_revenue_sources:
+      title: Ad Revenue Sources Filter
+      type: string
+      order: 10
+      description: Filter ad revenue sources, get list of ad revenue sources in <a href="https://dev.adjust.com/en/api/rs-api/reports#dimensions">here</a>
