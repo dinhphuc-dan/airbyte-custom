@@ -2,7 +2,7 @@
   "streams": [
     {
       "stream": {
-        "name": "Full_Report",
+        "name": "User_Level_Ad_Impression_Report",
         "json_schema": {},
         "supported_sync_modes": ["full_refresh", "incremental"]
       },

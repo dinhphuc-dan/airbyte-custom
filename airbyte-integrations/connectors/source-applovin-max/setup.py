@@ -10,7 +10,9 @@ MAIN_REQUIREMENTS = [
     "pydantic~=1.9.2",
     "jsonschema~=3.2.0",
     "jsonref~=0.2",
-    "dpath~=2.0.1"
+    "dpath~=2.0.1",
+    "pandas==2.1.0", 
+    "numpy==1.26.4"
 
 ]
 
