@@ -19,16 +19,16 @@ from functools import lru_cache
 from google.api_core.grpc_helpers import _StreamingResponseIterator
 from google.ads.googleads.client import GoogleAdsClient
 
-from google.ads.googleads.v20.services.services.google_ads_service import GoogleAdsServiceClient
-from google.ads.googleads.v20.services.types.google_ads_service import (
+from google.ads.googleads.v24.services.services.google_ads_service import GoogleAdsServiceClient
+from google.ads.googleads.v24.services.types.google_ads_service import (
     GoogleAdsRow, 
     SearchGoogleAdsStreamRequest, 
     SearchGoogleAdsStreamResponse
 )
 
 
-from google.ads.googleads.v20.services.services.google_ads_field_service import GoogleAdsFieldServiceClient
-from google.ads.googleads.v20.services.types.google_ads_field_service import (
+from google.ads.googleads.v24.services.services.google_ads_field_service import GoogleAdsFieldServiceClient
+from google.ads.googleads.v24.services.types.google_ads_field_service import (
     SearchGoogleAdsFieldsRequest
 )
 
@@ -39,7 +39,7 @@ class GoogleAdsCustomBaseStream(Stream, ABC):
     primary_key = None
     _cursor_value = None
 
-    # google data type: https://developers.google.com/google-ads/api/reference/rpc/v20/GoogleAdsFieldDataTypeEnum.GoogleAdsFieldDataType
+    # google data type: https://developers.google.com/google-ads/api/reference/rpc/v24/GoogleAdsFieldDataTypeEnum.GoogleAdsFieldDataType
     google_datatype_mapping = {
         "DATE": {"type": ["null", "string"], "format": "date"},
         "RESOURCE_NAME": {"type": ["null", "string"]},

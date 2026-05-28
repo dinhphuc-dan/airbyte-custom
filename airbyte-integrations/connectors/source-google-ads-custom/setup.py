@@ -8,7 +8,7 @@ from setuptools import find_packages, setup
 MAIN_REQUIREMENTS = [
     "airbyte-cdk==0.82.0",
     "airbyte_protocol_models==0.15.0",
-    "google-ads==27.0.0",
+    "google-ads==31.0.0",
 
 ]
 
