@@ -204,23 +204,19 @@ class TiktokAdsAdGroupReport(TiktokAdsCustomStream, IncrementalMixin):
             if (data_avaliable_date - start_date).days >= self.maximum_date_range:
                 end_date: datetime.date = start_date.add(days=self.maximum_date_range)
                 end_date_as_str: str = end_date.to_date_string()
-                for id in self.list_advertiser_ids:
-                    slice.append({
-                        "start_date": start_date_as_str,
-                        "end_date": end_date_as_str,
-                        "advertiser_id": id
-                        }
-                    )
+                slice.append({
+                    "start_date": start_date_as_str,
+                    "end_date": end_date_as_str
+                    }
+                )
             else:
                 end_date: datetime.date = data_avaliable_date
                 end_date_as_str: str = end_date.to_date_string()
-                for id in self.list_advertiser_ids:
-                    slice.append({
-                        "start_date": start_date_as_str,
-                        "end_date": end_date_as_str,
-                        "advertiser_id": id
-                        }
-                    )
+                slice.append({
+                    "start_date": start_date_as_str,
+                    "end_date": end_date_as_str
+                    }
+                )
             start_date: datetime.date = end_date.add(days=1)
 
         return slice or [None]
@@ -239,10 +235,11 @@ class TiktokAdsAdGroupReport(TiktokAdsCustomStream, IncrementalMixin):
         ) -> Optional[Mapping[str, Any]]:
         # default body params
         body = {
+            "advertiser_ids": self.list_advertiser_ids,
             "report_type": "BASIC",
             "data_level": "AUCTION_ADGROUP",
             "dimensions": ["adgroup_id", "stat_time_day","country_code"],
-            "metrics": ["promotion_type","placement_type","adgroup_name","campaign_name","campaign_id", "objective_type","spend", "impressions", "clicks", "reach", "conversion","real_time_conversion", "result","real_time_result","currency", "mobile_app_id", "tt_app_id", "tt_app_name"],
+            "metrics": ["promotion_type","placement_type","advertiser_id","campaign_name","campaign_id","adgroup_name","objective_type","spend", "impressions", "clicks", "reach", "conversion","real_time_conversion", "result","real_time_result","currency", "mobile_app_id", "tt_app_id", "tt_app_name"],
             "page_size": self.page_size
         }
 
@@ -254,7 +251,8 @@ class TiktokAdsAdGroupReport(TiktokAdsCustomStream, IncrementalMixin):
             body.update({"filtering": [{"filter_value": json.dumps(["STATUS_ALL"]), "field_name": "adgroup_status", "filter_type": "IN"}]})
 
         body.update(stream_slice)
-        self.logger.info(f" Request Params {stream_slice['start_date'], stream_slice['end_date'], stream_slice['advertiser_id']}")
+        self.logger.info(f" Request Params {stream_slice['start_date'], stream_slice['end_date']}")
+
         return body
 
     def read_records(
@@ -271,9 +269,6 @@ class TiktokAdsAdGroupReport(TiktokAdsCustomStream, IncrementalMixin):
             record_cursor_value: datetime.date = pendulum.parse(record[self.cursor_field]).date()
             self._cursor_value: datetime.date = max(self._cursor_value, record_cursor_value) if self._cursor_value else record_cursor_value
 
-            # because response does not contain advertiser_id, so we add it here
-            if record is not None:
-                record.update({"advertiser_id": stream_slice["advertiser_id"]})
             yield record
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
@@ -319,10 +314,77 @@ class TiktokAdsAdGroupReport(TiktokAdsCustomStream, IncrementalMixin):
                 "stat_time_day": {"type": ["null", "string"]},
                 "advertiser_id": {"type": ["null", "string"]},
                 "country_code": {"type": ["null", "string"]},
-                "adgroup_id": {"type": ["null", "string"]},
-                "adgroup_name": {"type": ["null", "string"]},
                 "campaign_id": {"type": ["null", "string"]},
                 "campaign_name": {"type": ["null", "string"]},
+                "adgroup_id": {"type": ["null", "string"]},
+                "adgroup_name": {"type": ["null", "string"]},
+                "placement_type": {"type": ["null", "string"]},
+                "objective_type": {"type": ["null", "string"]},
+                "promotion_type": {"type": ["null", "string"]},
+                "currency": {"type": ["null", "string"]},
+                "mobile_app_id": {"type": ["null", "string"]},
+                "tt_app_id": {"type": ["null", "string"]},
+                "tt_app_name": {"type": ["null", "string"]},
+                "spend": {"type": ["null", "number"]},
+                "impressions": {"type": ["null", "number"]},
+                "clicks": {"type": ["null", "number"]},
+                "conversion": {"type": ["null", "number"]},
+                "real_time_conversion": {"type": ["null", "number"]},
+                "result": {"type": ["null", "number"]},
+                "real_time_result": {"type": ["null", "number"]},
+                "reach": {"type": ["null", "number"]},
+            }
+        }
+        return full_schema
+
+class TiktokAdsAdReport(TiktokAdsAdGroupReport):
+
+    @property
+    def name(self) -> str:
+        """Override method to get stream name """
+        stream_name = 'Ad_Report'
+        return stream_name
+    
+    def request_body_json(
+            self, stream_state: Optional[Mapping[str, Any]], stream_slice: Optional[Mapping[str, Any]] = None, next_page_token: Optional[Mapping[str, Any]] = None,
+        ) -> Optional[Mapping[str, Any]]:
+        # default body params
+        body = {
+            "advertiser_ids": self.list_advertiser_ids,
+            "report_type": "BASIC",
+            "data_level": "AUCTION_AD",
+            "dimensions": ["ad_id", "stat_time_day","country_code"],
+            "metrics": ["promotion_type","placement_type","advertiser_id","campaign_name","campaign_id","adgroup_name","adgroup_id","ad_name","objective_type","spend", "impressions", "clicks", "reach", "conversion","real_time_conversion", "result","real_time_result","currency", "mobile_app_id", "tt_app_id", "tt_app_name"],
+            "page_size": self.page_size
+        }
+
+        if next_page_token:
+            next_page = next_page_token + 1
+            body.update({"page": next_page})
+
+        if self.include_deleted:
+            body.update({"filtering": [{"filter_value": json.dumps(["STATUS_ALL"]), "field_name": "ad_status", "filter_type": "IN"}]})
+
+        body.update(stream_slice)
+        self.logger.info(f" Request Params {stream_slice['start_date'], stream_slice['end_date']}")
+
+        return body
+    
+    def get_json_schema(self) -> Mapping[str, Any]:
+        full_schema = {
+            "$schema": "http://json-schema.org/draft-07/schema#",
+            "type": "object",
+            "required": [],
+            "properties": {
+                "stat_time_day": {"type": ["null", "string"]},
+                "advertiser_id": {"type": ["null", "string"]},
+                "country_code": {"type": ["null", "string"]},
+                "campaign_id": {"type": ["null", "string"]},
+                "campaign_name": {"type": ["null", "string"]},
+                "adgroup_id": {"type": ["null", "string"]},
+                "adgroup_name": {"type": ["null", "string"]},
+                "ad_id": {"type": ["null", "string"]},
+                "ad_name": {"type": ["null", "string"]},
                 "placement_type": {"type": ["null", "string"]},
                 "objective_type": {"type": ["null", "string"]},
                 "promotion_type": {"type": ["null", "string"]},
@@ -364,5 +426,5 @@ class SourceTiktokAdsCustom(AbstractSource):
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
         token=config.get("access_token")
         auth = TiktokTokenAuthenticator(token=token)
-        streams = [TiktokAdsAdGroupReport(authenticator = auth, config=config)]
+        streams = [TiktokAdsAdGroupReport(authenticator = auth, config=config), TiktokAdsAdReport(authenticator = auth, config=config)]
         return streams
