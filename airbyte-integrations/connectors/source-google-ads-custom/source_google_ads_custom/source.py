@@ -278,7 +278,6 @@ class GoogleAdsCustomBaseStream(Stream, ABC):
                 customer_client.status,
                 customer_client.hidden
             FROM customer_client
-            WHERE customer_client.level = 1
         """
         all_account_and_its_mcc_as_dict = {}
         mcc_regex = re.compile(r'^customers/(?P<MCC>[0-9]*?)/', flags=re.I | re.DOTALL | re.VERBOSE)
